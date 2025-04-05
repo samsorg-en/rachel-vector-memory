@@ -19,9 +19,8 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 memory_engine = MemoryEngine()
 
-reply_text = "Debug log #1"
-logger.info(f"🧠 Returning reply: {reply_text}")
-return jsonify({ "reply": reply_text })
+logger.info(f"Debug log #1")
+
 
 # ✅ Environment Check
 def check_environment():
