@@ -1,0 +1,6 @@
+flask
+requests
+langchain
+langchain-community
+langchain-openai
+chromadb
