@@ -7,6 +7,7 @@ import logging
 import requests
 from flask import Flask, request, jsonify
 from memory_engine import MemoryEngine
+from twilio.twiml.voice_response import VoiceResponse
 
 # ✅ Logging Setup
 logging.basicConfig(
@@ -18,9 +19,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
 memory_engine = MemoryEngine()
-
-logger.info(f"Debug log #1")
-
 
 # ✅ Environment Check
 def check_environment():
@@ -49,6 +47,15 @@ def index():
         </body>
     </html>
     '''
+
+# ✅ Twilio Voice Webhook for Calls
+@app.route("/voice", methods=["POST"])
+def voice():
+    response = VoiceResponse()
+    response.say("Hi, this is Rachel from the solar team. Do you have a minute to chat?", voice="Polly.Joanna", language="en-US")
+    response.pause(length=1)
+    response.redirect("/respond_twilio")
+    return str(response)
 
 # ✅ Process Transcript Files
 @app.route("/process", methods=["POST"])
