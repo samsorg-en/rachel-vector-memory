@@ -28,7 +28,7 @@ class MemoryEngine:
             return
 
         for filename in sorted(os.listdir(self.script_path)):
-            if filename.endswith(".txt"):
+            if filename.endswith(".txt") and not filename.startswith("."):
                 with open(os.path.join(self.script_path, filename), "r") as f:
                     content = f.read().strip()
                     for line in content.split("[gather]"):
@@ -38,10 +38,10 @@ class MemoryEngine:
         self.script_index = 0
 
     def process_transcripts(self):
-        """Load memory vector DB from transcript .txts"""
+        """Load memory vector DB from transcript .txts (excluding script files)"""
         total = 0
         for file in os.listdir(self.transcript_dir):
-            if file.endswith(".txt") and "script" not in file:
+            if file.endswith(".txt") and "script" not in file and not file.startswith("."):
                 loader = TextLoader(os.path.join(self.transcript_dir, file))
                 docs = loader.load()
                 self.vectorstore.add_documents(docs)
@@ -58,13 +58,18 @@ class MemoryEngine:
                 "sources": ["script"]
             }
 
-        related_docs = self.vectorstore.similarity_search(user_input, k=2)
-        result = self.qa_chain.run(input_documents=related_docs, question=user_input)
-
-        return {
-            "response": result,
-            "sources": [doc.metadata.get("source", "unknown") for doc in related_docs]
-        }
+        try:
+            related_docs = self.vectorstore.similarity_search(user_input, k=2)
+            result = self.qa_chain.run(input_documents=related_docs, question=user_input)
+            return {
+                "response": result,
+                "sources": [doc.metadata.get("source", "unknown") for doc in related_docs]
+            }
+        except Exception as e:
+            return {
+                "response": f"I'm sorry, I'm having trouble accessing memory. Here's the error: {str(e)}",
+                "sources": []
+            }
 
     def reset_script(self):
         """Reset script for next call"""
@@ -73,6 +78,9 @@ class MemoryEngine:
     def get_stats(self):
         return {
             "total_segments": len(self.vectorstore.get()["ids"]),
-            "total_sources": len(os.listdir(self.transcript_dir)),
+            "total_sources": len([
+                f for f in os.listdir(self.transcript_dir)
+                if f.endswith(".txt") and not f.startswith(".") and "script" not in f
+            ]),
             "vector_dimension": self.embedding.client.model_dimensions["text-embedding-ada-002"]
         }
