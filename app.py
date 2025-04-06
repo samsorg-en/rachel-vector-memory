@@ -77,7 +77,7 @@ def respond_twilio():
 
         response = VoiceResponse()
         response.say(reply_text, voice="Polly.Joanna")
-        logger.info(f"👂 Lane's Debbuging 3: {user_input}")
+        logger.info(f"👂 Lane's Debbuging 3: {reply_text}")
         return str(response)
     except Exception as e:
         logger.error(f"❌ Error in /respond_twilio: {e}")
