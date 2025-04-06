@@ -25,10 +25,15 @@ def voice():
     try:
         memory_engine.reset_script()  # 🧠 Reset for new call
         response = VoiceResponse()
+
+        # 🎙️ Start with first scripted line
+        first_line = memory_engine.generate_response("initial")["response"]
         gather = Gather(input="speech", timeout=5, action="/respond_twilio", method="POST")
-        gather.say("Hi, this is Rachel from the solar team. Do you have a minute to chat?", voice="Polly.Joanna")
+        gather.say(first_line, voice="Polly.Joanna")
         response.append(gather)
-        response.redirect("/voice")  # fallback if no speech
+
+        # ⏪ Fallback if silence
+        response.redirect("/voice")
         return str(response)
     except Exception as e:
         logger.error(f"❌ Error in /voice: {e}")
@@ -58,6 +63,7 @@ def respond_twilio():
         response = VoiceResponse()
         response.say(reply_text, voice="Polly.Joanna")
 
+        # 🔁 Re-engage for next input
         gather = Gather(input="speech", timeout=5, action="/respond_twilio", method="POST")
         gather.say("What else would you like to know about solar?", voice="Polly.Joanna")
         response.append(gather)
@@ -69,7 +75,7 @@ def respond_twilio():
         fallback.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
         return str(fallback)
 
-# ✅ Required for Fly.io to keep app alive!
+# ✅ Keep Fly.io alive
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     logger.info(f"🚀 Starting Rachel Memory Engine on port {port}")
