@@ -55,7 +55,7 @@ def voice():
     gather = Gather(input="speech", timeout=5, action="/respond_twilio", method="POST")
     gather.say("Hi, this is Rachel from the solar team. Do you have a minute to chat?", voice="Polly.Joanna", language="en-US")
     response.append(gather)
-    response.redirect("/voice")  # fallback in case no speech detected
+    response.redirect("/voice")
     return str(response)
 
 # ✅ Handle Twilio Speech Response
@@ -71,6 +71,7 @@ def respond_twilio():
             response.say("Sorry, I didn't catch that. Could you say that again?", voice="Polly.Joanna")
             response.redirect("/voice")
             return str(response)
+
         logger.info(f"👂 Lane's Debbuging 2: {user_input}")
         response_data = memory_engine.generate_response(user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
@@ -170,7 +171,10 @@ def submit_appointment():
     except Exception as e:
         return jsonify({"status": "❌ Error", "message": str(e)})
 
-# ✅ Start App
+# ✅ Start App with Auto Memory Load
 if __name__ == "__main__":
     check_environment()
+    logger.info("🧠 Loading call transcripts into memory...")
+    memory_engine.process_transcripts()
+    logger.info("✅ Rachel's memory is ready!")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
