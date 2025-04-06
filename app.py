@@ -82,10 +82,16 @@ def respond_twilio():
         response_data = memory_engine.generate_response(user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
 
+        logger.info(f"👂 Lane's Debugging 3: {reply_text}")
         response = VoiceResponse()
         response.say(reply_text, voice="Polly.Joanna")
-        logger.info(f"👂 Lane's Debugging 3: {reply_text}")
+
+        # 🔁 Re-engage with another Gather for next input
+        gather = Gather(input="speech", timeout=5, action="/respond_twilio", method="POST")
+        gather.say("What else would you like to know about solar?")
+        response.append(gather)
         return str(response)
+
     except Exception as e:
         logger.error(f"❌ Error in /respond_twilio: {e}")
         fallback = VoiceResponse()
