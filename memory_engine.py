@@ -33,6 +33,7 @@ class MemoryEngine:
         related_docs = self.vectorstore.similarity_search(objection_text, k=2)
         result = self.qa_chain.run(input_documents=related_docs, question=objection_text)
 
+        logger.info(f"👂 Lane's Debug, #4 in Memory Engine: {result}")
         return {
             "response": result,
             "sources": [doc.metadata.get("source", "unknown") for doc in related_docs]
