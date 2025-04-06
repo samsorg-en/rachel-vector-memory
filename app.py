@@ -7,7 +7,7 @@ import logging
 import requests
 from flask import Flask, request, jsonify
 from memory_engine import MemoryEngine
-from twilio.twiml.voice_response import VoiceResponse
+from twilio.twiml.voice_response import VoiceResponse, Gather
 
 # ✅ Logging Setup
 logging.basicConfig(
@@ -52,17 +52,37 @@ def index():
 @app.route("/voice", methods=["POST"])
 def voice():
     response = VoiceResponse()
-    response.say("Hi, this is Rachel from the solar team. Do you have a minute to chat?", voice="Polly.Joanna", language="en-US")
-    response.pause(length=1)
-    response.redirect("/respond_twilio")
+    gather = Gather(input="speech", timeout=5, action="/respond_twilio", method="POST")
+    gather.say("Hi, this is Rachel from the solar team. Do you have a minute to chat?", voice="Polly.Joanna", language="en-US")
+    response.append(gather)
+    response.redirect("/voice")  # fallback in case no speech detected
     return str(response)
 
-# ✅ Handle Twilio Follow-up Route
+# ✅ Handle Twilio Speech Response
 @app.route("/respond_twilio", methods=["POST"])
 def respond_twilio():
-    response = VoiceResponse()
-    response.say("Thanks for your response. Someone will follow up with you shortly.", voice="Polly.Joanna")
-    return str(response)
+    try:
+        user_input = request.form.get("SpeechResult", "")
+        logger.info(f"👂 Heard from caller: {user_input}")
+
+        if not user_input:
+            response = VoiceResponse()
+            response.say("Sorry, I didn't catch that. Could you say that again?", voice="Polly.Joanna")
+            response.redirect("/voice")
+            return str(response)
+
+        response_data = memory_engine.generate_response(user_input)
+        reply_text = response_data.get("response", "I'm not sure how to respond to that.")
+
+        response = VoiceResponse()
+        response.say(reply_text, voice="Polly.Joanna")
+
+        return str(response)
+    except Exception as e:
+        logger.error(f"❌ Error in /respond_twilio: {e}")
+        response = VoiceResponse()
+        response.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
+        return str(response)
 
 # ✅ Process Transcript Files
 @app.route("/process", methods=["POST"])
