@@ -1,3 +1,7 @@
+# ✅ Flask App Setup (MUST BE FIRST before any @app.route)
+app = Flask(__name__)
+memory_engine = MemoryEngine()
+
 # ✅ Twilio Entry Point (Safe with Try-Catch)
 @app.route("/voice", methods=["POST"])
 def voice():
@@ -41,6 +45,7 @@ def respond_twilio():
         gather = Gather(input="speech", timeout=5, action="/respond_twilio", method="POST")
         gather.say("What else would you like to know about solar?")
         response.append(gather)
+
         return str(response)
 
     except Exception as e:
