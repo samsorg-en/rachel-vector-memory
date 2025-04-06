@@ -68,3 +68,9 @@ def respond_twilio():
         fallback = VoiceResponse()
         fallback.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
         return str(fallback)
+
+# ✅ Required for Fly.io to keep app alive!
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    logger.info(f"🚀 Starting Rachel Memory Engine on port {port}")
+    app.run(host="0.0.0.0", port=port)
