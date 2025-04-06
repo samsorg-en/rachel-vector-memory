@@ -63,20 +63,22 @@ def voice():
 def respond_twilio():
     try:
         user_input = request.form.get("SpeechResult", "")
-        logger.info(f"👂 Heard from caller: {user_input}")
+  logger.info(f"👂 Heard from caller: {user_input}")
 
         if not user_input:
+            # ✅ Lane's Debbuging
+            logger.info(f"👂 Lane's Debbuging 1: {user_input}")
             response = VoiceResponse()
             response.say("Sorry, I didn't catch that. Could you say that again?", voice="Polly.Joanna")
             response.redirect("/voice")
             return str(response)
-
+ logger.info(f"👂 Lane's Debbuging 2: {user_input}")
         response_data = memory_engine.generate_response(user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
 
         response = VoiceResponse()
         response.say(reply_text, voice="Polly.Joanna")
-
+ logger.info(f"👂 Lane's Debbuging 3: {user_input}")
         return str(response)
     except Exception as e:
         logger.error(f"❌ Error in /respond_twilio: {e}")
