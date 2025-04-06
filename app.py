@@ -48,13 +48,20 @@ def index():
     </html>
     '''
 
-# ✅ Twilio Voice Webhook for Calls
+# ✅ Twilio Entry Point
 @app.route("/voice", methods=["POST"])
 def voice():
     response = VoiceResponse()
     response.say("Hi, this is Rachel from the solar team. Do you have a minute to chat?", voice="Polly.Joanna", language="en-US")
     response.pause(length=1)
     response.redirect("/respond_twilio")
+    return str(response)
+
+# ✅ Handle Twilio Follow-up Route
+@app.route("/respond_twilio", methods=["POST"])
+def respond_twilio():
+    response = VoiceResponse()
+    response.say("Thanks for your response. Someone will follow up with you shortly.", voice="Polly.Joanna")
     return str(response)
 
 # ✅ Process Transcript Files
@@ -66,7 +73,7 @@ def process_transcripts():
     except Exception as e:
         return f"Error: {str(e)}"
 
-# ✅ Manual Objection Query for Testing
+# ✅ Manual Objection Query
 @app.route("/query", methods=["POST"])
 def query_objection():
     try:
@@ -87,7 +94,7 @@ def show_stats():
     except Exception as e:
         return f"Error: {str(e)}"
 
-# ✅ VAPI/External Agent AI Response Route
+# ✅ VAPI or External AI Call to Rachel Brain
 @app.route("/respond", methods=["POST"])
 def respond_api():
     try:
@@ -99,7 +106,7 @@ def respond_api():
         response_data = memory_engine.generate_response(user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
 
-        # 📤 Auto-log to Sheets if response implies an appointment
+        # ✅ Auto-log to Google Sheets
         if "appointment set" in reply_text.lower():
             appointment_payload = {
                 "customer_name": "Donna Boardman",
@@ -127,7 +134,7 @@ def respond_api():
     except Exception as e:
         return jsonify({"reply": f"Error: {str(e)}"})
 
-# ✅ Manual Appointment Submission Route
+# ✅ Manual Sheet Logger (optional)
 @app.route("/submit_appointment", methods=["POST"])
 def submit_appointment():
     try:
