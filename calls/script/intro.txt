@@ -1,1 +1,8 @@
+Hey, uh sam? 
+[gather]
 
+Hey Sam this is Rachel. You should've gotten a notice recently on your utility bill from centerpoint in regards to the rate hikes and power outages in your district. It was like a, um, yellow slip at the bottom of the bill? Did you not receive that here about a 2-3 months ago? 
+[gather]
+
+No worries that's why we called because we noticed it looked like you never received it. Basically in short Texas is trying to reduce the load on the grid and incentivizing customers to switch and or at least look at one of their new plans. It can be anywhere from 30-40% less annually than what you're spending now. Was your last bill well over $150 for the month? 
+[gather]
