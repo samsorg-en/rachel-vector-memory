@@ -38,7 +38,6 @@ def voice():
         )
         gather.say(first_line, voice="Polly.Joanna")
         response.append(gather)
-        response.redirect("/voice")
         return str(response)
     except Exception as e:
         logger.error(f"❌ Error in /voice: {e}")
