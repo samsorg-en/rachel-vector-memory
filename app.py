@@ -3,7 +3,7 @@ from twilio.twiml.voice_response import VoiceResponse, Gather
 import logging
 import sys
 import os
-from memory_engine import MemoryEngine
+from memory_engine import MemoryEngine  # ✅ This import is safe now
 
 # ✅ Logging Setup
 logging.basicConfig(
