@@ -2,8 +2,8 @@ import os
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.chains.question_answering import load_qa_chain
-
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
 
 class MemoryEngine:
     def __init__(self, transcript_dir="calls", db_path="./chroma_db"):
@@ -16,7 +16,10 @@ class MemoryEngine:
             embedding_function=self.embedding
         )
         self.llm = ChatOpenAI(model="gpt-4", temperature=0.4)
-        self.qa_chain = load_qa_chain(self.llm, chain_type="stuff")
+        prompt_template = PromptTemplate.from_template(
+            "Answer the question based on memory: {context}\n\nQ: {question}\nA:"
+        )
+        self.qa_chain = LLMChain(llm=self.llm, prompt=prompt_template)
         self.script_lines = []
         self.script_index = 0
         self._load_script()
@@ -25,17 +28,18 @@ class MemoryEngine:
         """Load all .txt lines from script directory with [gather] markers."""
         self.script_lines = []
         if not os.path.exists(self.script_path):
+            print(f"❌ Script folder not found: {self.script_path}")
             return
 
         for filename in sorted(os.listdir(self.script_path)):
             if filename.endswith(".txt") and not filename.startswith("."):
                 with open(os.path.join(self.script_path, filename), "r") as f:
                     content = f.read().strip()
-                    for line in content.split("[gather]"):
-                        cleaned = line.strip()
-                        if cleaned:
-                            self.script_lines.append(cleaned)
+                    segments = [line.strip() for line in content.split("[gather]") if line.strip()]
+                    self.script_lines.extend(segments)
+
         self.script_index = 0
+        print(f"✅ Loaded {len(self.script_lines)} script blocks.")
 
     def process_transcripts(self):
         """Load memory vector DB from transcript .txts (excluding script files)"""
@@ -60,7 +64,8 @@ class MemoryEngine:
 
         try:
             related_docs = self.vectorstore.similarity_search(user_input, k=2)
-            result = self.qa_chain.run(input_documents=related_docs, question=user_input)
+            context = "\n".join([doc.page_content for doc in related_docs])
+            result = self.qa_chain.run({"context": context, "question": user_input})
             return {
                 "response": result,
                 "sources": [doc.metadata.get("source", "unknown") for doc in related_docs]
