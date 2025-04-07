@@ -21,11 +21,10 @@ class MemoryEngine:
         )
         self.qa_chain = LLMChain(llm=self.llm, prompt=prompt_template)
         self.script_lines = []
-        self.script_index = 0
+        self.script_indices = {}  # Track per-call script index
         self._load_script()
 
     def _load_script(self):
-        """Load all .txt lines from script directory with [gather] markers."""
         self.script_lines = []
         if not os.path.exists(self.script_path):
             print(f"❌ Script folder not found: {self.script_path}")
@@ -38,11 +37,9 @@ class MemoryEngine:
                     segments = [line.strip() for line in content.split("[gather]") if line.strip()]
                     self.script_lines.extend(segments)
 
-        self.script_index = 0
         print(f"✅ Loaded {len(self.script_lines)} script blocks.")
 
     def process_transcripts(self):
-        """Load memory vector DB from transcript .txts (excluding script files)"""
         total = 0
         for file in os.listdir(self.transcript_dir):
             if file.endswith(".txt") and "script" not in file and not file.startswith("."):
@@ -52,11 +49,13 @@ class MemoryEngine:
                 total += 1
         return total
 
-    def generate_response(self, user_input):
-        """Return next script line or fallback to memory"""
-        if self.script_index < len(self.script_lines):
-            response = self.script_lines[self.script_index]
-            self.script_index += 1
+    def generate_response(self, call_sid, user_input):
+        if call_sid not in self.script_indices:
+            self.script_indices[call_sid] = 0
+
+        if self.script_indices[call_sid] < len(self.script_lines):
+            response = self.script_lines[self.script_indices[call_sid]]
+            self.script_indices[call_sid] += 1
             return {
                 "response": response,
                 "sources": ["script"]
@@ -82,9 +81,8 @@ class MemoryEngine:
                 "sources": []
             }
 
-    def reset_script(self):
-        """Reset script for next call"""
-        self.script_index = 0
+    def reset_script(self, call_sid):
+        self.script_indices[call_sid] = 0
 
     def get_stats(self):
         return {
