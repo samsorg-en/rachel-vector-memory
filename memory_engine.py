@@ -21,7 +21,7 @@ class MemoryEngine:
         self.call_memory = {}
 
         # Fallback knowledge base (for objections or questions)
-        loader = TextLoader("calls/memory/objections.txt")
+        loader = TextLoader("calls/script/objections.txt")  # ✅ Fixed path
         docs = loader.load()
         text_splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
         texts = text_splitter.split_documents(docs)
