@@ -32,7 +32,7 @@ def voice():
 
         gather = Gather(
             input="speech",
-            timeout=1.5,
+            timeout=1,
             action="/respond_twilio",
             method="POST"
         )
@@ -50,46 +50,50 @@ def voice():
 def respond_twilio():
     try:
         call_sid = request.form.get("CallSid")
-        user_input = request.form.get("SpeechResult", "")
+        user_input = request.form.get("SpeechResult", "").strip()
         logger.info(f"👂 Heard from caller: {user_input}")
 
-        # Handle silence
+        response = VoiceResponse()
+
+        # Handle silence or mute
         if not user_input:
             silent_attempts[call_sid] = silent_attempts.get(call_sid, 0) + 1
             logger.info(f"🤫 Silence detected: {silent_attempts[call_sid]} time(s)")
 
-            response = VoiceResponse()
-
             if silent_attempts[call_sid] == 1:
-                gather = Gather(input="speech", timeout=1.5, action="/respond_twilio", method="POST")
+                gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
                 gather.say("Can you still hear me?", voice="Polly.Joanna")
                 response.append(gather)
 
             elif silent_attempts[call_sid] == 2:
-                gather = Gather(input="speech", timeout=1.5, action="/respond_twilio", method="POST")
+                gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
                 gather.say("Did I lose you?", voice="Polly.Joanna")
                 response.append(gather)
 
             elif silent_attempts[call_sid] >= 3:
-                response.say("Alright, I’ll try back another time.", voice="Polly.Joanna")
+                response.say("Okay, I’ll go ahead and try again another time. Take care!", voice="Polly.Joanna")
                 response.hangup()
 
             return str(response)
 
-        # Reset silence tracker on user response
+        # Reset silence tracker on valid input
         silent_attempts[call_sid] = 0
 
         response_data = memory_engine.generate_response(user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
 
-        response = VoiceResponse()
+        # Speak response
         response.say(reply_text, voice="Polly.Joanna")
 
-        # Gather next input
-        gather = Gather(input="speech", timeout=1.5, action="/respond_twilio", method="POST")
-        gather.say("What else would you like to know about solar?", voice="Polly.Joanna")
-        response.append(gather)
+        # If more script left, keep gathering
+        if response_data.get("sources") == ["script"]:
+            gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
+            gather.say("...", voice="Polly.Joanna")  # Neutral bridge to next input
+            response.append(gather)
+        else:
+            response.say("Thanks again for your time today. Have a great day!", voice="Polly.Joanna")
+            response.hangup()
 
         return str(response)
 
