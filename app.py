@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import logging
 import sys
@@ -18,9 +18,8 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 memory_engine = MemoryEngine()
 
-# ✅ Silent Tracker + Script Position Tracker
+# ✅ Silent Tracker
 silent_attempts = {}
-script_position = {}
 
 # ✅ Start the Call with Script
 @app.route("/voice", methods=["POST"])
@@ -28,7 +27,6 @@ def voice():
     try:
         call_sid = request.form.get("CallSid")
         memory_engine.reset_script(call_sid)
-        script_position[call_sid] = 0
 
         response = VoiceResponse()
         first_line = memory_engine.generate_response(call_sid, "initial")["response"]
@@ -42,6 +40,7 @@ def voice():
         gather.say(first_line, voice="Polly.Joanna")
         response.append(gather)
         return str(response)
+
     except Exception as e:
         logger.error(f"❌ Error in /voice: {e}")
         fallback = VoiceResponse()
@@ -58,7 +57,7 @@ def respond_twilio():
 
         response = VoiceResponse()
 
-        # Handle silence or mute
+        # Handle silence
         if not user_input:
             silent_attempts[call_sid] = silent_attempts.get(call_sid, 0) + 1
             logger.info(f"🤫 Silence detected: {silent_attempts[call_sid]} time(s)")
@@ -82,13 +81,13 @@ def respond_twilio():
         # Reset silence tracker on valid input
         silent_attempts[call_sid] = 0
 
+        # Get next script line
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
 
         response.say(reply_text, voice="Polly.Joanna")
 
-        # If more script left, keep gathering
         if response_data.get("sources") == ["script"]:
             gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
             gather.say("...", voice="Polly.Joanna")
