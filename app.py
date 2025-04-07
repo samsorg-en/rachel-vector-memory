@@ -3,7 +3,7 @@ from twilio.twiml.voice_response import VoiceResponse, Gather
 import logging
 import sys
 import os
-from memory_engine import MemoryEngine  # ✅ This import is safe now
+from memory_engine import MemoryEngine
 
 # ✅ Logging Setup
 logging.basicConfig(
@@ -11,17 +11,16 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
-
 logger = logging.getLogger(__name__)
 
 # ✅ Flask App Setup
 app = Flask(__name__)
 memory_engine = MemoryEngine()
 
-# ✅ Silent Tracker
+# ✅ Silence Tracker
 silent_attempts = {}
 
-# ✅ Start the Call with Script
+# ✅ Start Call
 @app.route("/voice", methods=["POST"])
 def voice():
     try:
@@ -60,19 +59,17 @@ def respond_twilio():
         # Handle silence
         if not user_input:
             silent_attempts[call_sid] = silent_attempts.get(call_sid, 0) + 1
-            logger.info(f"🤫 Silence detected: {silent_attempts[call_sid]} time(s)")
+            logger.info(f"🤫 Silence attempt #{silent_attempts[call_sid]}")
 
             if silent_attempts[call_sid] == 1:
                 gather = Gather(input="speech", timeout=1.5, action="/respond_twilio", method="POST")
                 gather.say("Can you still hear me?", voice="Polly.Joanna")
                 response.append(gather)
-
             elif silent_attempts[call_sid] == 2:
                 gather = Gather(input="speech", timeout=1.5, action="/respond_twilio", method="POST")
                 gather.say("Just checking back in — are you still there?", voice="Polly.Joanna")
                 response.append(gather)
-
-            elif silent_attempts[call_sid] >= 3:
+            else:
                 response.say("Okay, I’ll go ahead and try again another time. Take care!", voice="Polly.Joanna")
                 response.hangup()
 
@@ -86,13 +83,12 @@ def respond_twilio():
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
 
-        response.say(reply_text, voice="Polly.Joanna")
-
         if response_data.get("sources") == ["script"]:
             gather = Gather(input="speech", timeout=1.5, action="/respond_twilio", method="POST")
-            gather.say("...", voice="Polly.Joanna")
+            gather.say(reply_text, voice="Polly.Joanna")
             response.append(gather)
         else:
+            response.say(reply_text, voice="Polly.Joanna")
             response.say("Thanks again for your time today. Have a great day!", voice="Polly.Joanna")
             response.hangup()
 
@@ -104,7 +100,7 @@ def respond_twilio():
         fallback.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
         return str(fallback)
 
-# ✅ Keep Fly.io Alive
+# ✅ Keep App Running
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     logger.info(f"🚀 Starting Rachel Memory Engine on port {port}")
