@@ -78,10 +78,10 @@ def respond_twilio():
 
             return str(response)
 
-        # Reset silence tracker on valid input
+        # Reset silence tracker
         silent_attempts[call_sid] = 0
 
-        # Get next script line
+        # Get next script or fallback
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
