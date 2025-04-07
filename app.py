@@ -88,7 +88,7 @@ def respond_twilio():
         # If more script left, keep gathering
         if response_data.get("sources") == ["script"]:
             gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
-            gather.say("...", voice="Polly.Joanna")  # Neutral bridge
+            gather.say("...", voice="Polly.Joanna")
             response.append(gather)
         else:
             response.say("Thanks again for your time today. Have a great day!", voice="Polly.Joanna")
