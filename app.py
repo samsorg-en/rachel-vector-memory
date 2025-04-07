@@ -81,7 +81,7 @@ def respond_twilio():
         # Reset silence tracker
         silent_attempts[call_sid] = 0
 
-        # Get next script or fallback
+        # Get next script line or fallback
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
@@ -91,7 +91,7 @@ def respond_twilio():
             gather.say(reply_text, voice="Polly.Joanna")
             response.append(gather)
         else:
-            response.say("Appreciate you giving this a listen. We’ll circle back another time. Take care!", voice="Polly.Joanna")
+            response.say(reply_text, voice="Polly.Joanna")
             response.hangup()
             memory_engine.reset_script(call_sid)
 
