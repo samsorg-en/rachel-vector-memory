@@ -1,91 +1,110 @@
+from flask import Flask, request, jsonify
+from twilio.twiml.voice_response import VoiceResponse, Gather
+import logging
+import sys
 import os
-from langchain_community.document_loaders import TextLoader
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
+import requests
+from memory_engine import MemoryEngine
 
-class MemoryEngine:
-    def __init__(self, transcript_dir="calls", db_path="./chroma_db"):
-        self.transcript_dir = transcript_dir
-        self.script_path = os.path.join(transcript_dir, "script")
-        self.db_path = db_path
-        self.embedding = OpenAIEmbeddings()
-        self.vectorstore = Chroma(
-            persist_directory=self.db_path,
-            embedding_function=self.embedding
+# ✅ Logging Setup
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
+logger = logging.getLogger(__name__)
+
+# ✅ Flask App Setup
+app = Flask(__name__)
+memory_engine = MemoryEngine()
+
+# ✅ Silent Tracker
+silent_attempts = {}
+
+# ✅ Start the Call with Script
+@app.route("/voice", methods=["POST"])
+def voice():
+    try:
+        memory_engine.reset_script()
+        response = VoiceResponse()
+        first_line = memory_engine.generate_response("initial")["response"]
+
+        gather = Gather(
+            input="speech",
+            timeout=1,
+            action="/respond_twilio",
+            method="POST"
         )
-        self.llm = ChatOpenAI(model="gpt-4", temperature=0.4)
-        prompt_template = PromptTemplate.from_template(
-            "Answer the question based on memory: {context}\n\nQ: {question}\nA:"
-        )
-        self.qa_chain = LLMChain(llm=self.llm, prompt=prompt_template)
-        self.script_lines = []
-        self.script_index = 0
-        self._load_script()
+        gather.say(first_line, voice="Polly.Joanna")
+        response.append(gather)
+        return str(response)
+    except Exception as e:
+        logger.error(f"❌ Error in /voice: {e}")
+        fallback = VoiceResponse()
+        fallback.say("Sorry, something went wrong. Please try again later.", voice="Polly.Joanna")
+        return str(fallback)
 
-    def _load_script(self):
-        """Load all .txt lines from script directory with [gather] markers."""
-        self.script_lines = []
-        if not os.path.exists(self.script_path):
-            print(f"❌ Script folder not found: {self.script_path}")
-            return
+# ✅ Respond to User Input
+@app.route("/respond_twilio", methods=["POST"])
+def respond_twilio():
+    try:
+        call_sid = request.form.get("CallSid")
+        user_input = request.form.get("SpeechResult", "").strip()
+        logger.info(f"👂 Heard from caller: {user_input}")
 
-        for filename in sorted(os.listdir(self.script_path)):
-            if filename.endswith(".txt") and not filename.startswith("."):
-                with open(os.path.join(self.script_path, filename), "r") as f:
-                    content = f.read().strip()
-                    segments = [line.strip() for line in content.split("[gather]") if line.strip()]
-                    self.script_lines.extend(segments)
+        response = VoiceResponse()
 
-        self.script_index = 0
-        print(f"✅ Loaded {len(self.script_lines)} script blocks.")
+        # Handle silence or mute
+        if not user_input:
+            silent_attempts[call_sid] = silent_attempts.get(call_sid, 0) + 1
+            logger.info(f"🤫 Silence detected: {silent_attempts[call_sid]} time(s)")
 
-    def process_transcripts(self):
-        """Load memory vector DB from transcript .txts (excluding script files)"""
-        total = 0
-        for file in os.listdir(self.transcript_dir):
-            if file.endswith(".txt") and "script" not in file and not file.startswith("."):
-                loader = TextLoader(os.path.join(self.transcript_dir, file))
-                docs = loader.load()
-                self.vectorstore.add_documents(docs)
-                total += 1
-        return total
+            if silent_attempts[call_sid] == 1:
+                gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
+                gather.say("Can you still hear me?", voice="Polly.Joanna")
+                response.append(gather)
 
-    def generate_response(self, user_input):
-        """Return next script line or fallback to memory"""
-        if self.script_index < len(self.script_lines):
-            response = self.script_lines[self.script_index]
-            self.script_index += 1
-            return {
-                "response": response,
-                "sources": ["script"]
-            }
+            elif silent_attempts[call_sid] == 2:
+                gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
+                gather.say("Just checking back in — are you still there?", voice="Polly.Joanna")
+                response.append(gather)
 
-        try:
-            related_docs = self.vectorstore.similarity_search(user_input, k=2)
-            context = "\n".join([doc.page_content for doc in related_docs])
-            result = self.qa_chain.run({"context": context, "question": user_input})
-            return {
-                "response": result,
-                "sources": [doc.metadata.get("source", "unknown") for doc in related_docs]
-            }
-        except Exception as e:
-            return {
-                "response": f"I'm sorry, I'm having trouble accessing memory. Here's the error: {str(e)}",
-                "sources": []
-            }
+            elif silent_attempts[call_sid] >= 3:
+                response.say("Okay, I’ll go ahead and try again another time. Take care!", voice="Polly.Joanna")
+                response.hangup()
 
-    def reset_script(self):
-        """Reset script for next call"""
-        self.script_index = 0
+            return str(response)
 
-    def get_stats(self):
-        return {
-            "total_segments": len(self.vectorstore.get()["ids"]),
-            "total_sources": len([
-                f for f in os.listdir(self.transcript_dir)
-                if f.endswith(".txt") and not f.startswith(".") and "script" not in f
-            ]),
-            "vector_dimension": self.embedding.client.model_dimensions["text-embedding-ada-002"]
-        }
+        # Reset silence tracker on valid input
+        silent_attempts[call_sid] = 0
+
+        response_data = memory_engine.generate_response(user_input)
+        reply_text = response_data.get("response", "I'm not sure how to respond to that.")
+        logger.info(f"🗣️ Rachel: {reply_text}")
+
+        # Speak response
+        response.say(reply_text, voice="Polly.Joanna")
+
+        # If more script left, keep gathering
+        if response_data.get("sources") == ["script"]:
+            gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
+            gather.say("...", voice="Polly.Joanna")
+            response.append(gather)
+        else:
+            response.say("Thanks again for your time today. Have a great day!", voice="Polly.Joanna")
+            response.hangup()
+
+        return str(response)
+
+    except Exception as e:
+        logger.error(f"❌ Error in /respond_twilio: {e}")
+        fallback = VoiceResponse()
+        fallback.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
+        return str(fallback)
+
+# ✅ Keep Fly.io Alive
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    logger.info(f"🚀 Starting Rachel Memory Engine on port {port}")
+    app.run(host="0.0.0.0", port=port)
