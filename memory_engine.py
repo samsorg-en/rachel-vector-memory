@@ -1,49 +1,82 @@
-import os
+# memory_engine.py
+
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatOpenAI
 from langchain.vectorstores import Chroma
+from langchain.document_loaders import TextLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.vectorstores import Chroma as ChromaDB
-
-# ✅ Load the script files and split them
-def load_script_chunks():
-    loader = TextLoader("calls/script/intro.txt")  # Modify if more files are needed
-    documents = loader.load()
-    splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    return splitter.split_documents(documents)
-
-# ✅ Setup the vectorstore once at start
-chunks = load_script_chunks()
-embedding = OpenAIEmbeddings()
-vectorstore = ChromaDB.from_documents(chunks, embedding)
-
-# ✅ Session memory for script progress
-session_memory = {}
+import os
+import glob
 
 class MemoryEngine:
     def __init__(self):
-        self.vectorstore = vectorstore
-        self.session_memory = {}
+        script_path = "calls/script/*.txt"
+        self.script_sections = {}
+        for path in sorted(glob.glob(script_path)):
+            key = os.path.basename(path).replace(".txt", "")
+            with open(path, "r") as file:
+                self.script_sections[key] = file.read()
+
+        # Memory state for each caller
+        self.call_memory = {}
+
+        # Fallback knowledge base (for objections or questions)
+        loader = TextLoader("calls/memory/objections.txt")
+        docs = loader.load()
+        text_splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
+        texts = text_splitter.split_documents(docs)
+        embedding = OpenAIEmbeddings()
+        self.vectorstore = Chroma.from_documents(texts, embedding)
+
+        retriever = self.vectorstore.as_retriever(search_kwargs={"k": 2})
+        self.qa = RetrievalQA.from_chain_type(
+            llm=ChatOpenAI(
+                model="gpt-3.5-turbo",
+                temperature=0.7,
+                request_timeout=8,
+                max_tokens=256
+            ),
+            retriever=retriever
+        )
 
     def reset_script(self, call_sid):
-        self.session_memory[call_sid] = {"step": 0}
+        self.call_memory[call_sid] = {
+            "script_keys": list(self.script_sections.keys()),
+            "current_index": 0
+        }
 
     def generate_response(self, call_sid, user_input):
-        memory = self.session_memory.get(call_sid, {"step": 0})
-        step = memory["step"]
+        memory = self.call_memory.get(call_sid)
 
-        if step < len(chunks):
-            response = chunks[step].page_content
-            self.session_memory[call_sid]["step"] += 1
-            return {"response": response, "sources": ["script"]}
-        else:
-            # After script is done, switch to fallback vector QA
-            retriever = self.vectorstore.as_retriever(search_kwargs={"k": 2})
-            qa = RetrievalQA.from_chain_type(
-                llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7, request_timeout=8, max_tokens=256),
-                retriever=retriever
-            )
-            answer = qa.run(user_input)
-            return {"response": answer, "sources": ["vector"]}
+        if not memory:
+            return {"response": "Sorry, something went wrong."}
+
+        # If first input, start script
+        if user_input == "initial":
+            next_line = self.script_sections[memory["script_keys"][0]]
+            memory["current_index"] += 1
+            return {
+                "response": self._clean(next_line),
+                "sources": ["script"]
+            }
+
+        # If still reading from script
+        if memory["current_index"] < len(memory["script_keys"]):
+            key = memory["script_keys"][memory["current_index"]]
+            line = self.script_sections[key]
+            memory["current_index"] += 1
+            return {
+                "response": self._clean(line),
+                "sources": ["script"]
+            }
+
+        # Else fallback to QA
+        answer = self.qa.run(user_input)
+        return {
+            "response": answer,
+            "sources": ["memory"]
+        }
+
+    def _clean(self, text):
+        return text.replace("[gather]", "").strip()
