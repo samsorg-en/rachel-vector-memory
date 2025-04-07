@@ -1,10 +1,8 @@
-# memory_engine.py
-
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatOpenAI
-from langchain.vectorstores import Chroma
-from langchain.document_loaders import TextLoader
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_community.document_loaders import TextLoader
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 import os
 import glob
@@ -22,7 +20,7 @@ class MemoryEngine:
         self.call_memory = {}
 
         # Fallback knowledge base (for objections or questions)
-        loader = TextLoader("calls/memory/objections.txt")
+        loader = TextLoader("calls/script/objections.txt")
         docs = loader.load()
         text_splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
         texts = text_splitter.split_documents(docs)
