@@ -3,7 +3,6 @@ from twilio.twiml.voice_response import VoiceResponse, Gather
 import logging
 import sys
 import os
-import requests
 from memory_engine import MemoryEngine
 
 # ✅ Logging Setup
@@ -67,7 +66,7 @@ def respond_twilio():
 
             elif silent_attempts[call_sid] == 2:
                 gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
-                gather.say("Did I lose you?", voice="Polly.Joanna")
+                gather.say("Just checking back in — are you still there?", voice="Polly.Joanna")
                 response.append(gather)
 
             elif silent_attempts[call_sid] >= 3:
@@ -89,7 +88,7 @@ def respond_twilio():
         # If more script left, keep gathering
         if response_data.get("sources") == ["script"]:
             gather = Gather(input="speech", timeout=1, action="/respond_twilio", method="POST")
-            gather.say("...", voice="Polly.Joanna")  # Neutral bridge to next input
+            gather.say("...", voice="Polly.Joanna")  # Neutral bridge
             response.append(gather)
         else:
             response.say("Thanks again for your time today. Have a great day!", voice="Polly.Joanna")
