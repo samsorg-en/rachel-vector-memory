@@ -1,8 +1,8 @@
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatOpenAI
-from langchain_community.vectorstores import Chroma
-from langchain_community.document_loaders import TextLoader
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import Chroma
+from langchain.document_loaders import TextLoader
+from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 import os
 import glob
@@ -14,13 +14,14 @@ class MemoryEngine:
         for path in sorted(glob.glob(script_path)):
             key = os.path.basename(path).replace(".txt", "")
             with open(path, "r") as file:
-                self.script_sections[key] = file.read()
+                content = file.read()
+                self.script_sections[key] = [part.strip() for part in content.split("[gather]") if part.strip()]
 
         # Memory state for each caller
         self.call_memory = {}
 
         # Fallback knowledge base (for objections or questions)
-        loader = TextLoader("calls/script/objections.txt")
+        loader = TextLoader("calls/memory/objections.txt")
         docs = loader.load()
         text_splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
         texts = text_splitter.split_documents(docs)
@@ -39,8 +40,12 @@ class MemoryEngine:
         )
 
     def reset_script(self, call_sid):
+        flat_script = []
+        for section in self.script_sections.values():
+            flat_script.extend(section)
+
         self.call_memory[call_sid] = {
-            "script_keys": list(self.script_sections.keys()),
+            "script_segments": flat_script,
             "current_index": 0
         }
 
@@ -50,26 +55,18 @@ class MemoryEngine:
         if not memory:
             return {"response": "Sorry, something went wrong."}
 
-        # If first input, start script
         if user_input == "initial":
-            next_line = self.script_sections[memory["script_keys"][0]]
-            memory["current_index"] += 1
-            return {
-                "response": self._clean(next_line),
-                "sources": ["script"]
-            }
+            if memory["script_segments"]:
+                next_line = memory["script_segments"][0]
+                memory["current_index"] = 1
+                return {"response": next_line.strip(), "sources": ["script"]}
 
-        # If still reading from script
-        if memory["current_index"] < len(memory["script_keys"]):
-            key = memory["script_keys"][memory["current_index"]]
-            line = self.script_sections[key]
+        if memory["current_index"] < len(memory["script_segments"]):
+            next_line = memory["script_segments"][memory["current_index"]]
             memory["current_index"] += 1
-            return {
-                "response": self._clean(line),
-                "sources": ["script"]
-            }
+            return {"response": next_line.strip(), "sources": ["script"]}
 
-        # Else fallback to QA
+        # Fallback to QA (objection handling)
         answer = self.qa.run(user_input)
         return {
             "response": answer,
