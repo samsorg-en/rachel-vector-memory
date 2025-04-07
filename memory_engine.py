@@ -21,7 +21,7 @@ class MemoryEngine:
         )
         self.qa_chain = LLMChain(llm=self.llm, prompt=prompt_template)
         self.script_lines = []
-        self.script_indices = {}  # Track per-call script index
+        self.script_indices = {}
         self._load_script()
 
     def _load_script(self):
@@ -53,8 +53,12 @@ class MemoryEngine:
         if call_sid not in self.script_indices:
             self.script_indices[call_sid] = 0
 
-        if self.script_indices[call_sid] < len(self.script_lines):
-            response = self.script_lines[self.script_indices[call_sid]]
+        if user_input == "initial":
+            self.script_indices[call_sid] = 0
+
+        index = self.script_indices[call_sid]
+        if index < len(self.script_lines):
+            response = self.script_lines[index]
             self.script_indices[call_sid] += 1
             return {
                 "response": response,
