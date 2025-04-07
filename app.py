@@ -18,16 +18,20 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 memory_engine = MemoryEngine()
 
-# ✅ Silent Tracker
+# ✅ Silent Tracker + Script Position Tracker
 silent_attempts = {}
+script_position = {}
 
 # ✅ Start the Call with Script
 @app.route("/voice", methods=["POST"])
 def voice():
     try:
-        memory_engine.reset_script()
+        call_sid = request.form.get("CallSid")
+        memory_engine.reset_script(call_sid)
+        script_position[call_sid] = 0
+
         response = VoiceResponse()
-        first_line = memory_engine.generate_response("initial")["response"]
+        first_line = memory_engine.generate_response(call_sid, "initial")["response"]
 
         gather = Gather(
             input="speech",
@@ -78,11 +82,10 @@ def respond_twilio():
         # Reset silence tracker on valid input
         silent_attempts[call_sid] = 0
 
-        response_data = memory_engine.generate_response(user_input)
+        response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
 
-        # Speak response
         response.say(reply_text, voice="Polly.Joanna")
 
         # If more script left, keep gathering
