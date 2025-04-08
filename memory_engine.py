@@ -67,8 +67,6 @@ class MemoryEngine:
         if memory.get("in_objection_followup") and memory.get("pending_followup"):
             followup = memory.pop("pending_followup")
             memory["in_objection_followup"] = False
-
-            # Next step: return follow-up with gather, then resume script
             return {"response": followup + " [gather]", "sources": ["followup"]}
 
         # ✅ Continue script after follow-up
@@ -85,7 +83,6 @@ class MemoryEngine:
             response_data = self.known_objections[matched_key]
             memory["in_objection_followup"] = True
             memory["pending_followup"] = response_data.get("followup", "")
-
             return {"response": response_data["response"] + " [gather]", "sources": ["memory"]}
 
         # ✅ Move forward in script
