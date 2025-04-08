@@ -31,14 +31,17 @@ def voice():
         response = VoiceResponse()
         first_line = memory_engine.generate_response(call_sid, "initial")["response"]
 
+        # ✅ Strip [gather] from speech
+        reply, _ = first_line.split("[gather]") if "[gather]" in first_line else (first_line, None)
+
         gather = Gather(
             input="speech",
-            timeout=1.5,
+            timeout=1,
             speechTimeout="auto",
             action="/respond_twilio",
             method="POST"
         )
-        gather.say(first_line, voice="Polly.Joanna")
+        gather.say(reply.strip(), voice="Polly.Joanna")
         response.append(gather)
         return str(response)
 
@@ -65,34 +68,34 @@ def respond_twilio():
             logger.info(f"🤫 Silence attempt #{attempts}")
 
             if attempts == 1:
-                gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
+                gather = Gather(input="speech", timeout=1, speechTimeout="auto", action="/respond_twilio", method="POST")
                 gather.say("Can you still hear me?", voice="Polly.Joanna")
                 response.append(gather)
-
             elif attempts == 2:
-                gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
+                gather = Gather(input="speech", timeout=1, speechTimeout="auto", action="/respond_twilio", method="POST")
                 gather.say("Just checking back in — are you still there?", voice="Polly.Joanna")
                 response.append(gather)
-
             else:
                 response.say("Okay, I’ll go ahead and try again another time. Take care!", voice="Polly.Joanna")
                 response.hangup()
                 silent_attempts.pop(call_sid, None)
                 memory_engine.reset_script(call_sid)
-
             return str(response)
 
-        # ✅ Reset silence tracker if user responded
+        # ✅ Reset silence tracker
         silent_attempts[call_sid] = 0
 
-        # ✅ Get Rachel's response
+        # ✅ Get Rachel’s reply
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
 
-        # ✅ Always gather after reply (script or objection)
-        gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
-        gather.say(reply_text, voice="Polly.Joanna")
+        # ✅ Strip "[gather]" from output
+        reply, _ = reply_text.split("[gather]") if "[gather]" in reply_text else (reply_text, None)
+
+        # ✅ Always gather after speaking
+        gather = Gather(input="speech", timeout=1, speechTimeout="auto", action="/respond_twilio", method="POST")
+        gather.say(reply.strip(), voice="Polly.Joanna")
         response.append(gather)
 
         return str(response)
@@ -103,7 +106,7 @@ def respond_twilio():
         fallback.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
         return str(fallback)
 
-# ✅ Keep App Running
+# ✅ Run the app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     logger.info(f"🚀 Starting Rachel Memory Engine on port {port}")
