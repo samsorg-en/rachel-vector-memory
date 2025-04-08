@@ -61,7 +61,7 @@ class MemoryEngine:
     def generate_response(self, call_sid, user_input):
         memory = self.call_memory.get(call_sid)
         if not memory:
-            return {"response": "Let’s go ahead and keep moving — this part will get cleared up during your consultation.", "sources": ["script"]}
+            return {"response": "Sorry, something went wrong."}
 
         if user_input == "initial":
             if memory["script_segments"]:
@@ -95,26 +95,29 @@ class MemoryEngine:
             return {"response": objection_data["response"], "sources": ["memory"]}
 
         vague_confirmations = [
-            "yeah", "yes", "sure", "i guess", "i think so",
-            "that’s right", "correct", "uh huh", "yep", "ya", "i own it"
+            "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
+            "uh huh", "yep", "ya", "i own it", "not sure", "i don’t know", "i don't know"
         ]
 
         try:
             answer = self.qa.run(user_input)
             cleaned = answer.strip().lower()
+            fallback_phrases = [
+                "how can i assist you", "how can i help you", "i don't know", "i’m sorry",
+                "i do not have enough context", "not sure", "sorry", "that's a good question"
+            ]
             if (
                 not cleaned or
-                cleaned.startswith("i don't know") or
-                cleaned.startswith("i'm sorry") or
-                "don't have enough context" in cleaned or
-                len(cleaned) < 10 or
-                any(phrase in cleaned for phrase in vague_confirmations)
+                len(cleaned) < 12 or
+                any(phrase in cleaned for phrase in fallback_phrases + vague_confirmations)
             ):
                 if memory["current_index"] < len(memory["script_segments"]):
                     line = memory["script_segments"][memory["current_index"]]
                     memory["current_index"] += 1
                     return {"response": line.strip(), "sources": ["script"]}
+
             return {"response": answer.strip(), "sources": ["memory"]}
+
         except Exception as e:
             print("[⚠️ QA fallback error]", str(e))
             if memory["current_index"] < len(memory["script_segments"]):
