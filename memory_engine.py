@@ -47,7 +47,8 @@ class MemoryEngine:
         self.call_memory[call_sid] = {
             "script_segments": flat_script,
             "current_index": 0,
-            "in_objection_followup": False  # ⬅️ new flag to track if we're still handling objection
+            "in_objection_followup": False,
+            "pending_followup": None
         }
 
     def generate_response(self, call_sid, user_input):
@@ -62,7 +63,15 @@ class MemoryEngine:
                 memory["current_index"] = 1
                 return {"response": next_line.strip(), "sources": ["script"]}
 
-        # ✅ Continue objection follow-up
+        # ✅ Run objection follow-up if queued
+        if memory.get("in_objection_followup") and memory.get("pending_followup"):
+            followup = memory.pop("pending_followup")
+            memory["in_objection_followup"] = False
+
+            # Next step: return follow-up with gather, then resume script
+            return {"response": followup + " [gather]", "sources": ["followup"]}
+
+        # ✅ Continue script after follow-up
         if memory.get("in_objection_followup"):
             memory["in_objection_followup"] = False
             if memory["current_index"] < len(memory["script_segments"]):
@@ -73,11 +82,11 @@ class MemoryEngine:
         # ✅ Detect and respond to objection
         matched_key = self._semantic_match_objection(user_input)
         if matched_key:
-            response = self.known_objections[matched_key].strip()
-            memory["in_objection_followup"] = True  # 👈 flag we're in objection mode
+            response_data = self.known_objections[matched_key]
+            memory["in_objection_followup"] = True
+            memory["pending_followup"] = response_data.get("followup", "")
 
-            # Add gather to keep convo going before continuing script
-            return {"response": response + " [gather]", "sources": ["memory"]}
+            return {"response": response_data["response"] + " [gather]", "sources": ["memory"]}
 
         # ✅ Move forward in script
         if memory["current_index"] < len(memory["script_segments"]):
@@ -107,12 +116,21 @@ class MemoryEngine:
                     key = lines[i].strip().lower()
                     i += 1
                     response = ""
+                    followup = ""
                     if i < len(lines) and lines[i].strip().startswith("[response]"):
                         i += 1
-                        while i < len(lines) and not lines[i].strip().startswith("[objection]"):
+                        while i < len(lines) and not lines[i].strip().startswith("[followup]") and not lines[i].strip().startswith("[objection]"):
                             response += lines[i].strip() + " "
                             i += 1
-                    objections[key] = response.strip()
+                    if i < len(lines) and lines[i].strip().startswith("[followup]"):
+                        i += 1
+                        while i < len(lines) and not lines[i].strip().startswith("[objection]"):
+                            followup += lines[i].strip() + " "
+                            i += 1
+                    objections[key] = {
+                        "response": response.strip(),
+                        "followup": followup.strip()
+                    }
             else:
                 i += 1
         return objections
