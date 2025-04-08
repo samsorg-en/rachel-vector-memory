@@ -94,25 +94,20 @@ class MemoryEngine:
             memory["pending_followup"] = objection_data.get("followup", "")
             return {"response": objection_data["response"], "sources": ["memory"]}
 
-        if memory["current_index"] < len(memory["script_segments"]):
-            line = memory["script_segments"][memory["current_index"]]
-            memory["current_index"] += 1
-            return {"response": line.strip(), "sources": ["script"]}
+        # ✅ Vague confirmations to just move forward
+        vague_confirmations = [
+            "yeah", "yes", "sure", "i guess", "i think so",
+            "that’s right", "correct", "uh huh", "yep", "ya", "i own it"
+        ]
 
         try:
             answer = self.qa.run(user_input)
             cleaned = answer.strip().lower()
-
-            vague_confirmations = [
-                "yeah", "yes", "sure", "i guess", "i think so",
-                "that’s right", "correct", "uh huh", "yep", "ya", "i own it"
-            ]
-
             if (
-                not cleaned
-                or cleaned.startswith("i don't know")
-                or len(cleaned) < 10
-                or any(phrase in cleaned for phrase in vague_confirmations)
+                not cleaned or
+                cleaned.startswith("i don't know") or
+                len(cleaned) < 10 or
+                any(phrase in cleaned for phrase in vague_confirmations)
             ):
                 if memory["current_index"] < len(memory["script_segments"]):
                     line = memory["script_segments"][memory["current_index"]]
@@ -126,7 +121,10 @@ class MemoryEngine:
                 line = memory["script_segments"][memory["current_index"]]
                 memory["current_index"] += 1
                 return {"response": line.strip(), "sources": ["script"]}
-            return {"response": "Let’s go ahead and keep moving — this part will get cleared up during your consultation.", "sources": ["memory"]}
+            return {
+                "response": "Let’s go ahead and keep moving — this part will get cleared up during your consultation.",
+                "sources": ["memory"]
+            }
 
     def _load_known_objections(self, path):
         objections = {}
