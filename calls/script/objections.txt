@@ -1,13 +1,12 @@
 [objection]
 too expensive
-[objection]
 costs too much
-[objection]
 can't afford it
-[objection]
-sounds pricey
-[objection]
-sounds expensive
+i don't have the money
+out of budget
+no money for that
+i'm broke
+it’s not in my budget
 [response]
 Totally get that — most people assume solar is a huge expense because they’re thinking about owning panels. What we're talking about here is actually a **relief program** — it's a no-cost setup where you just agree to buy power at a lower rate. You're not taking on a big loan, and there's no upfront investment. The goal is to **reduce what you're already paying**, not add to it. 
 So out of curiosity — what's your average summer bill look like?
@@ -16,18 +15,14 @@ Oh wow, yeah — that’s exactly the kind of usage this was built for. Let’s 
 
 [objection]
 solar is a scam
-[objection]
-my friend went solar and had a bad experience
-[objection]
-solar is a ripoff
-[objection]
 heard bad things about solar
-[objection]
-they ended up paying two bills
-[objection]
-my neighbor said it’s a scam
-[objection]
-I don’t trust solar companies
+my friend got scammed
+it doesn't work
+two bills now
+it’s a ripoff
+my buddy had a terrible experience
+they lied to me
+got burned by solar before
 [response]
 You’re right to be skeptical — there are a lot of companies doing it the wrong way. What we’re part of is a **state-backed relief program** that only works if it actually saves you money. There's no sales pitch or pressure — just a technician who explains what it would look like, and if it doesn’t save you money, you walk away.  
 Fair enough?
@@ -36,12 +31,10 @@ Totally — no pressure either way, but good to at least see if you qualify, rig
 
 [objection]
 money upfront
-[objection]
-i don’t want to pay anything up front
-[objection]
-do i have to pay to get started?
-[objection]
-what’s the upfront cost?
+i don't want to pay anything today
+down payment required?
+how much up front?
+do i need to pay to get started?
 [response]
 Totally fair — if there was a big cost upfront, I’d feel the same way. This program is **$0 down** — no install fees, no setup costs. You’re simply switching power providers and locking in a better rate.  
 You’re still getting a full system, it’s just funded differently.  
@@ -50,13 +43,12 @@ Do you own the home?
 Perfect — that’s exactly the kind of property this applies to.
 
 [objection]
-hate the way they look
-[objection]
-i don’t like how solar panels look
-[objection]
-they’re ugly
-[objection]
-i don’t want them on my roof
+i hate how it looks
+they're ugly
+my HOA won’t allow it
+i don’t want panels on my roof
+it's gonna ruin my curb appeal
+solar panels look bad
 [response]
 Yeah I get that — aesthetics matter. A lot of newer installs are actually **black-on-black low-profile panels** that blend in way better. Some even go on the back side of the roof if you prefer. But let’s be real — if it cut your bill by 30–40%, would the look still be a dealbreaker?
 [followup]
@@ -64,12 +56,10 @@ Exactly — and honestly, most people say they barely even notice them after ins
 
 [objection]
 why do you need my credit?
-[objection]
-why do you need my credit score?
-[objection]
-are you pulling my credit?
-[objection]
-i don’t want a credit check
+why do you need to check my credit?
+do i have to give you my social?
+what does credit have to do with this?
+i'm not giving out my info
 [response]
 Good question. This is a **relief program**, and to qualify they just want to make sure you're a responsible homeowner — so they ask if your score is at least **650 or better**. No social, no pull, nothing sensitive — it's just a qualification filter.  
 Would you say you’re above that?
@@ -78,24 +68,21 @@ Awesome — that should definitely qualify you for the better rate tiers.
 
 [objection]
 i’m in oil and gas
-[objection]
-i work in the energy industry
-[objection]
-i work in oilfield
+i work in energy
+i don’t support solar
+i don’t believe in solar
+i'm pro fossil fuel
 [response]
-Hey, that’s fair — and to be honest, most of the people going solar aren't doing it to be green. They're doing it to **beat the utility hikes**. It's not political — it’s just smart long-term math.  
+Hey, that’s fair — and to be honest, most of the people going solar aren't doing it to be green. They're doing it to **beat the utility hikes**. It’s not political — it’s just smart long-term math.  
 What do your summer bills usually look like out there?
 [followup]
 Whew yeah, you’re definitely overpaying. Let’s change that.
 
 [objection]
 technology isn't there yet
-[objection]
-solar isn’t advanced enough
-[objection]
-i don’t trust the tech
-[objection]
-panels don’t work well enough yet
+solar tech isn't reliable
+it breaks all the time
+i don't trust the tech
 [response]
 Totally hear you — but just so you know, the **tech hasn't really changed much in the last 10 years**. These systems are already warrantied for 25 years and produce reliably year after year. This isn’t beta tech — it's proven and built to last.  
 Is your roof in good shape right now?
@@ -104,36 +91,22 @@ Perfect — that’s all we’d really need to check to get you qualified.
 
 [objection]
 i don’t want to finance
-[objection]
-i don’t want to take a loan
-[objection]
-i’m not financing anything
-[objection]
-i’m not getting a loan
+i don’t want a loan
+i don’t like debt
+i’m not taking on a payment
+no new bills
 [response]
-Gotcha — and good news, this isn’t financing in the traditional sense. You’re **not buying panels** — you're simply locking in a lower rate for the power you’re already buying. No new loan, just cheaper electricity.  
+Totally makes sense — and that’s actually why this isn’t a traditional loan or finance deal. You’re not buying panels — you’re just switching where you buy power from and locking in a cheaper rate.  
+No new loan, no debt added — just savings.  
 What kind of bill range do you usually see?
 [followup]
 Wow — okay yeah, that’s a good chunk of change you’re already spending.
 
 [objection]
-don’t want to pay it for 25 years
-[objection]
-25 years is too long
-[objection]
-i’m not signing a 25 year deal
-[response]
-Fair concern — but you’re **already going to be paying for power for the next 25 years**, whether you go solar or not. The question is just: Do you want to keep renting it at a rising rate — or lock in a discount?  
-Have you seen your rate go up recently?
-[followup]
-Right? It’s been climbing nonstop — this kind of locks it in before it gets worse.
-
-[objection]
-this isn’t my forever home
-[objection]
-i’m not going to be here long
-[objection]
-we’re moving soon
+i’m not staying here long
+not my forever home
+i might sell soon
+i’m moving eventually
 [response]
 Totally get that — and honestly, solar actually **makes homes sell faster and for more**. The new buyer just inherits the lower bill, so you don’t lose a penny. It’s not like a remodel — it’s just passing along savings.  
 How long are you planning to stay?
@@ -141,13 +114,10 @@ How long are you planning to stay?
 Nice — that gives us plenty of time to show the benefit and get you some savings.
 
 [objection]
-how does this work?
-[objection]
-what is this for?
-[objection]
-what are you offering?
-[objection]
-what’s the catch?
+what is this?
+what's the point of this call?
+what's this about?
+why are you calling?
 [response]
 Great question — it’s actually super simple. We’re just setting up a quick **consultation with a technician** to check if your home qualifies for this relief program. Takes 10–15 minutes and just shows how much you’d save.  
 What’s your schedule like this week?
@@ -155,11 +125,21 @@ What’s your schedule like this week?
 Cool — I’ll make sure they reach out to confirm what works best for you.
 
 [objection]
+how does it work?
+explain the program
+what do i need to do?
+what happens next?
+[response]
+Love the curiosity — here’s the gist: a technician comes by, checks if your home qualifies, shows you the savings estimate, and answers all your questions. If it makes sense, great. If not, no pressure.  
+Do you usually have high summer bills?
+[followup]
+Oof yeah — we’ve been seeing that a lot lately. Glad we caught you now.
+
+[objection]
 i’m out of town
-[objection]
 i’m traveling
-[objection]
-i’m not home this week
+i'm not home right now
+i’m out of state
 [response]
 No worries — we’re just scheduling the **next available window**. I’ll note that you’re out of town now, but we’ll get you set for when you’re back.  
 What day are you flying back in?
@@ -168,6 +148,10 @@ Perfect — we’ll set it up right after you’re back.
 
 [objection]
 i can’t this week
+too busy this week
+swamped right now
+got too much going on
+maybe next week
 [response]
 Totally understandable — we’re booking out next week too. Let me see what’s still open… are you better earlier in the week or later?
 [followup]
@@ -175,6 +159,9 @@ Alright — I’ll pencil you in for that part of the week.
 
 [objection]
 i can’t today
+not available today
+today doesn't work
+try me later
 [response]
 All good — we’ve got availability later this week and into next. Are mornings or evenings easier for you?
 [followup]
@@ -182,6 +169,8 @@ Got it — we’ll lean toward that time when setting you up.
 
 [objection]
 i can’t tonight
+not tonight
+tonight’s not good
 [response]
 No problem — we’ve got slots tomorrow and the rest of the week too. Are you more of a morning or afternoon type?
 [followup]
