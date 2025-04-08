@@ -71,7 +71,7 @@ def respond_twilio():
                 gather.say("Just checking back in — are you still there?", voice="Polly.Joanna")
                 response.append(gather)
             else:
-                response.say("Okay, I’ll go ahead and try again another time. Take care!", voice="Polly.Joanna")
+                response.say("No worries — I’ll try again later. Take care!", voice="Polly.Joanna")
                 response.hangup()
                 silent_attempts.pop(call_sid, None)
                 memory_engine.reset_script(call_sid)
@@ -84,14 +84,17 @@ def respond_twilio():
         # Get next script line or fallback
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
-        logger.info(f"🗣️ Rachel: {reply_text}")
+
+        # Strip [objection]/[response] tags
+        clean_response = reply_text.replace("[objection]", "").replace("[response]", "").strip()
+        logger.info(f"🗣️ Rachel: {clean_response}")
 
         if response_data.get("sources") == ["script"]:
             gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
-            gather.say(reply_text, voice="Polly.Joanna")
+            gather.say(clean_response, voice="Polly.Joanna")
             response.append(gather)
         else:
-            response.say(reply_text, voice="Polly.Joanna")
+            response.say(clean_response, voice="Polly.Joanna")
             response.hangup()
             memory_engine.reset_script(call_sid)
 
