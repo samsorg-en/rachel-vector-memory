@@ -1,8 +1,64 @@
-Hey, uh sam?
+Hey, uh… Sam?  
 [gather]
 
-Hey Sam this is Rachel. You should've gotten a notice recently on your utility bill from centerpoint in regards to the rate hikes and power outages in your district. It was like a, um, yellow slip at the bottom of the bill? Did you not receive that here about a 2-3 months ago?
+Hey Sam, this is Rachel — you should’ve gotten a notice recently on your utility bill from CenterPoint, probably about 2–3 months ago.  
+It was that little yellow strip at the bottom — had to do with the rate hikes and those rolling outages.  
+Did you happen to catch that?  
 [gather]
 
-No worries that's why we called because we noticed it looked like you never received it. Basically in short Texas is trying to reduce the load on the grid and incentivizing customers to switch and or at least look at one of their new plans. It can be anywhere from 30-40% less annually than what you're spending now. Was your last bill well over $150 for the month?
+No worries — that’s actually why we’re calling. It looked like you never received it on our end.  
+
+So, quick heads-up — this is just part of a grid relief push here in Texas.  
+The state’s basically trying to reduce how much load is on the grid…  
+and so they’ve been quietly incentivizing certain utility zones like CenterPoint to get people on more efficient power plans.
+
+In some cases, the switch ends up saving folks 30 to 40% annually — which is like a thousand bucks a year or more, depending on usage.  
+Just out of curiosity though, was your last bill well over $150?  
 [gather]
+
+Okay, yeah, that makes sense. You’re exactly the type of home they look for with usage that high.
+
+Before I waste your time — let me just make sure your property even qualifies…
+
+This is still your property at [123 Main St], right?  
+[gather]
+
+You own it — not renting or anything?  
+[gather]
+
+Cool. And as long as your credit score’s somewhere around a 650 or better — not perfect, just solid — you’d usually qualify for these new plans.  
+You think you're in that ballpark?  
+[gather]
+
+Perfect. And I assume there haven’t been any recent bankruptcies or foreclosures in the last couple years?  
+[gather]
+
+Okay, great. So before I explain the program — real quick, are you familiar with the big solar scam going on in your area?  
+[gather]
+
+Yeah, so there’s a ton of door knockers and ads right now trying to get people to buy, finance, or lease panels — locking folks into big loans or 25-year liens on the house.  
+Have you had any of those people hit your door lately?  
+[gather]
+
+Yeah — exactly. So what we’re doing is actually the opposite of that.  
+There’s a new power purchase agreement — kind of like what you’re already on with Reliant or whoever you’ve got —  
+except now you’re purchasing that power directly from your own roof, not the grid.
+
+They install the panels for free, maintain them, insure them — and instead of paying a big utility bill each month,  
+you just pay for the power you produce.
+
+But it’s usually a lot cheaper — again, $1,000–$1,500 per year less is pretty common.
+
+Now, we don’t send out a salesperson or anything — it’s just one of our local technicians who stops by,  
+does a super quick inspection, and gives you the actual savings report.  
+Nothing you sign up for on the spot or anything like that — just shows you what you’d qualify for.
+
+Cool — looks like I’ve got everything I need here.  
+What I’ll do is pass this to one of our head techs — he’ll probably give you a ring here in the next 10–15 minutes,  
+just real quick, to see if he’s got anyone in your area this week that can pop by and drop off the report.
+
+So just keep an eye out for that call — it should come from a 281 or 832 number, local.  
+Sound good?  
+[gather]
+
+Alright, awesome — talk soon.
