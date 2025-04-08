@@ -77,22 +77,21 @@ class MemoryEngine:
             memory["in_objection_followup"] = False
             return self._next_script_line(memory)
 
-        # Objection detection
+        # Handle objections first
         matched_key = self._exact_match_objection(user_input)
         if not matched_key:
             matched_key = self._semantic_match_objection(user_input)
-
         if matched_key:
             objection_data = self.known_objections[matched_key]
             memory["in_objection_followup"] = True
             memory["pending_followup"] = objection_data.get("followup", "")
             return {"response": objection_data["response"], "sources": ["memory"]}
 
-        # Vague or short? Skip QA and just progress
+        # Short or vague? Skip QA, keep script moving
         vague = [
             "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
             "uh huh", "yep", "ya", "i own it", "not sure", "i don’t know", "i don't know",
-            "maybe", "probably", "okay", "alright"
+            "maybe", "probably", "okay", "alright", "this sounds good", "makes sense"
         ]
         if (
             len(user_input.strip()) < 10 or
@@ -100,13 +99,13 @@ class MemoryEngine:
         ):
             return self._next_script_line(memory)
 
-        # Try QA only if necessary
+        # Try vector QA fallback only if necessary
         try:
             answer = self.qa.run(user_input)
             cleaned = answer.strip().lower()
             fallback_phrases = [
-                "how can i assist you", "how can i help you", "i don't know",
-                "i’m sorry", "not sure", "sorry", "that's a good question"
+                "how can i assist", "how can i help", "i don't know", "i’m sorry",
+                "not sure", "sorry", "that’s a good question", "i do not have enough"
             ]
             if len(cleaned) < 12 or any(p in cleaned for p in fallback_phrases + vague):
                 return self._next_script_line(memory)
