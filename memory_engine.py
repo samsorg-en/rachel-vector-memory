@@ -12,7 +12,7 @@ class MemoryEngine:
     def __init__(self):
         global vectorstore
 
-        # ✅ Load call script
+        # ✅ Load script
         script_path = "calls/script/*.txt"
         self.script_sections = {}
         for path in sorted(glob.glob(script_path)):
@@ -21,7 +21,7 @@ class MemoryEngine:
                 content = file.read()
                 self.script_sections[key] = [part.strip() for part in content.split("[gather]") if part.strip()]
 
-        # ✅ Objection KB
+        # ✅ Objections KB
         loader = TextLoader("calls/script/objections.txt")
         docs = loader.load()
         text_splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
@@ -46,7 +46,8 @@ class MemoryEngine:
 
         self.call_memory[call_sid] = {
             "script_segments": flat_script,
-            "current_index": 0
+            "current_index": 0,
+            "in_objection_followup": False  # ⬅️ new flag to track if we're still handling objection
         }
 
     def generate_response(self, call_sid, user_input):
@@ -54,23 +55,29 @@ class MemoryEngine:
         if not memory:
             return {"response": "Sorry, something went wrong."}
 
+        # ✅ Start of call
         if user_input == "initial":
             if memory["script_segments"]:
                 next_line = memory["script_segments"][0]
                 memory["current_index"] = 1
                 return {"response": next_line.strip(), "sources": ["script"]}
 
-        # ✅ Match objection semantically
-        matched_key = self._semantic_match_objection(user_input)
-        if matched_key:
-            response = self.known_objections[matched_key]
-            next_line = None
+        # ✅ Continue objection follow-up
+        if memory.get("in_objection_followup"):
+            memory["in_objection_followup"] = False
             if memory["current_index"] < len(memory["script_segments"]):
                 next_line = memory["script_segments"][memory["current_index"]]
                 memory["current_index"] += 1
+                return {"response": next_line.strip(), "sources": ["script"]}
 
-            combined = f"{response} {next_line.strip()}" if next_line else response
-            return {"response": combined, "sources": ["memory"]}
+        # ✅ Detect and respond to objection
+        matched_key = self._semantic_match_objection(user_input)
+        if matched_key:
+            response = self.known_objections[matched_key].strip()
+            memory["in_objection_followup"] = True  # 👈 flag we're in objection mode
+
+            # Add gather to keep convo going before continuing script
+            return {"response": response + " [gather]", "sources": ["memory"]}
 
         # ✅ Move forward in script
         if memory["current_index"] < len(memory["script_segments"]):
@@ -81,10 +88,10 @@ class MemoryEngine:
         # ✅ Fallback QA
         try:
             answer = self.qa.run(user_input)
-            return {"response": answer, "sources": ["memory"]}
+            return {"response": answer + " [gather]", "sources": ["memory"]}
         except Exception as e:
             print("[⚠️ QA fallback error]", str(e))
-            return {"response": "Good question — we’ll go over that during your consultation.", "sources": ["memory"]}
+            return {"response": "Good question — we’ll go over that during your consultation. [gather]", "sources": ["memory"]}
 
     def _load_known_objections(self, path):
         objections = {}
