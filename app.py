@@ -1,5 +1,5 @@
 from flask import Flask, request
-from twilio.twiml.voice_response import VoiceResponse, Gather
+from twilio.twiml.voice_response import VoiceResponse, Gather, Pause
 import logging
 import sys
 import os
@@ -39,7 +39,9 @@ def voice():
             action="/respond_twilio",
             method="POST"
         )
+        gather.pause(length=1)  # ✅ small buffer before speaking
         gather.say(reply, voice="Polly.Joanna")
+        gather.pause(length=1)  # ✅ small buffer after speaking
         response.append(gather)
         return str(response)
 
@@ -97,7 +99,9 @@ def respond_twilio():
 
         # ✅ Final Gather after response
         gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
+        gather.pause(length=1)
         gather.say(reply, voice="Polly.Joanna")
+        gather.pause(length=1)
         response.append(gather)
 
         return str(response)
