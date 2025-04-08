@@ -19,6 +19,7 @@ memory_engine = MemoryEngine()
 
 # ✅ Silence Tracker
 silent_attempts = {}
+has_prompted_silence = {}
 
 # ✅ Start Call
 @app.route("/voice", methods=["POST"])
@@ -26,6 +27,8 @@ def voice():
     try:
         call_sid = request.form.get("CallSid")
         memory_engine.reset_script(call_sid)
+        silent_attempts[call_sid] = 0
+        has_prompted_silence[call_sid] = False
 
         response = VoiceResponse()
         first_line = memory_engine.generate_response(call_sid, "initial")["response"]
@@ -66,37 +69,40 @@ def respond_twilio():
                 gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
                 gather.say("Can you still hear me?", voice="Polly.Joanna")
                 response.append(gather)
+                return str(response)
+
             elif silent_attempts[call_sid] == 2:
                 gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
                 gather.say("Just checking back in — are you still there?", voice="Polly.Joanna")
                 response.append(gather)
+                return str(response)
+
             else:
-                response.say("No worries — I’ll try again later. Take care!", voice="Polly.Joanna")
+                response.say("Okay, I’ll go ahead and try again another time. Take care!", voice="Polly.Joanna")
                 response.hangup()
-                silent_attempts.pop(call_sid, None)
                 memory_engine.reset_script(call_sid)
+                silent_attempts.pop(call_sid, None)
+                has_prompted_silence.pop(call_sid, None)
+                return str(response)
 
-            return str(response)
-
-        # Reset silence tracker
+        # Reset silence trackers if user responds
         silent_attempts[call_sid] = 0
+        has_prompted_silence[call_sid] = False
 
         # Get next script line or fallback
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
-
-        # Strip [objection]/[response] tags
-        clean_response = reply_text.replace("[objection]", "").replace("[response]", "").strip()
-        logger.info(f"🗣️ Rachel: {clean_response}")
+        logger.info(f"🗣️ Rachel: {reply_text}")
 
         if response_data.get("sources") == ["script"]:
             gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
-            gather.say(clean_response, voice="Polly.Joanna")
+            gather.say(reply_text, voice="Polly.Joanna")
             response.append(gather)
         else:
-            response.say(clean_response, voice="Polly.Joanna")
-            response.hangup()
-            memory_engine.reset_script(call_sid)
+            # End call only after fallback (e.g. Q&A)
+            gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
+            gather.say(reply_text, voice="Polly.Joanna")
+            response.append(gather)
 
         return str(response)
 
