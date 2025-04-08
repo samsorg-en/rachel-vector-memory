@@ -1,5 +1,13 @@
 [objection]
 too expensive
+[objection]
+costs too much
+[objection]
+can't afford it
+[objection]
+sounds pricey
+[objection]
+sounds expensive
 [response]
 Totally get that — most people assume solar is a huge expense because they’re thinking about owning panels. What we're talking about here is actually a **relief program** — it's a no-cost setup where you just agree to buy power at a lower rate. You're not taking on a big loan, and there's no upfront investment. The goal is to **reduce what you're already paying**, not add to it. 
 So out of curiosity — what's your average summer bill look like?
@@ -7,15 +15,19 @@ So out of curiosity — what's your average summer bill look like?
 Oh wow, yeah — that’s exactly the kind of usage this was built for. Let’s see what we can save you.
 
 [objection]
-costs too much
-[response]
-Makes sense — that’s what most people think at first. But the thing is, this isn’t about buying panels or some big system upfront. It's a savings program where you lock in a lower power rate. Instead of renting power from the utility forever, you're just **getting cheaper power locked in**.  
-What bill range are you typically seeing in the summer?
-[followup]
-Got it — with numbers like that, this could be a pretty serious cut in cost for you.
-
-[objection]
 solar is a scam
+[objection]
+my friend went solar and had a bad experience
+[objection]
+solar is a ripoff
+[objection]
+heard bad things about solar
+[objection]
+they ended up paying two bills
+[objection]
+my neighbor said it’s a scam
+[objection]
+I don’t trust solar companies
 [response]
 You’re right to be skeptical — there are a lot of companies doing it the wrong way. What we’re part of is a **state-backed relief program** that only works if it actually saves you money. There's no sales pitch or pressure — just a technician who explains what it would look like, and if it doesn’t save you money, you walk away.  
 Fair enough?
@@ -24,6 +36,12 @@ Totally — no pressure either way, but good to at least see if you qualify, rig
 
 [objection]
 money upfront
+[objection]
+i don’t want to pay anything up front
+[objection]
+do i have to pay to get started?
+[objection]
+what’s the upfront cost?
 [response]
 Totally fair — if there was a big cost upfront, I’d feel the same way. This program is **$0 down** — no install fees, no setup costs. You’re simply switching power providers and locking in a better rate.  
 You’re still getting a full system, it’s just funded differently.  
@@ -33,6 +51,12 @@ Perfect — that’s exactly the kind of property this applies to.
 
 [objection]
 hate the way they look
+[objection]
+i don’t like how solar panels look
+[objection]
+they’re ugly
+[objection]
+i don’t want them on my roof
 [response]
 Yeah I get that — aesthetics matter. A lot of newer installs are actually **black-on-black low-profile panels** that blend in way better. Some even go on the back side of the roof if you prefer. But let’s be real — if it cut your bill by 30–40%, would the look still be a dealbreaker?
 [followup]
@@ -40,6 +64,12 @@ Exactly — and honestly, most people say they barely even notice them after ins
 
 [objection]
 why do you need my credit?
+[objection]
+why do you need my credit score?
+[objection]
+are you pulling my credit?
+[objection]
+i don’t want a credit check
 [response]
 Good question. This is a **relief program**, and to qualify they just want to make sure you're a responsible homeowner — so they ask if your score is at least **650 or better**. No social, no pull, nothing sensitive — it's just a qualification filter.  
 Would you say you’re above that?
@@ -48,6 +78,10 @@ Awesome — that should definitely qualify you for the better rate tiers.
 
 [objection]
 i’m in oil and gas
+[objection]
+i work in the energy industry
+[objection]
+i work in oilfield
 [response]
 Hey, that’s fair — and to be honest, most of the people going solar aren't doing it to be green. They're doing it to **beat the utility hikes**. It's not political — it’s just smart long-term math.  
 What do your summer bills usually look like out there?
@@ -56,6 +90,12 @@ Whew yeah, you’re definitely overpaying. Let’s change that.
 
 [objection]
 technology isn't there yet
+[objection]
+solar isn’t advanced enough
+[objection]
+i don’t trust the tech
+[objection]
+panels don’t work well enough yet
 [response]
 Totally hear you — but just so you know, the **tech hasn't really changed much in the last 10 years**. These systems are already warrantied for 25 years and produce reliably year after year. This isn’t beta tech — it's proven and built to last.  
 Is your roof in good shape right now?
@@ -64,6 +104,12 @@ Perfect — that’s all we’d really need to check to get you qualified.
 
 [objection]
 i don’t want to finance
+[objection]
+i don’t want to take a loan
+[objection]
+i’m not financing anything
+[objection]
+i’m not getting a loan
 [response]
 Gotcha — and good news, this isn’t financing in the traditional sense. You’re **not buying panels** — you're simply locking in a lower rate for the power you’re already buying. No new loan, just cheaper electricity.  
 What kind of bill range do you usually see?
@@ -71,15 +117,11 @@ What kind of bill range do you usually see?
 Wow — okay yeah, that’s a good chunk of change you’re already spending.
 
 [objection]
-i don’t want a loan
-[response]
-I get that — and that’s the beauty of this program. No loan, no debt added to your name. It’s more like switching from Verizon to T-Mobile — you’re just changing who provides your power, and locking in a better deal.  
-What would you say your average bill looks like?
-[followup]
-That’s perfect — you’re exactly the type of household they’re targeting.
-
-[objection]
 don’t want to pay it for 25 years
+[objection]
+25 years is too long
+[objection]
+i’m not signing a 25 year deal
 [response]
 Fair concern — but you’re **already going to be paying for power for the next 25 years**, whether you go solar or not. The question is just: Do you want to keep renting it at a rising rate — or lock in a discount?  
 Have you seen your rate go up recently?
@@ -88,6 +130,10 @@ Right? It’s been climbing nonstop — this kind of locks it in before it gets 
 
 [objection]
 this isn’t my forever home
+[objection]
+i’m not going to be here long
+[objection]
+we’re moving soon
 [response]
 Totally get that — and honestly, solar actually **makes homes sell faster and for more**. The new buyer just inherits the lower bill, so you don’t lose a penny. It’s not like a remodel — it’s just passing along savings.  
 How long are you planning to stay?
@@ -95,7 +141,13 @@ How long are you planning to stay?
 Nice — that gives us plenty of time to show the benefit and get you some savings.
 
 [objection]
+how does this work?
+[objection]
 what is this for?
+[objection]
+what are you offering?
+[objection]
+what’s the catch?
 [response]
 Great question — it’s actually super simple. We’re just setting up a quick **consultation with a technician** to check if your home qualifies for this relief program. Takes 10–15 minutes and just shows how much you’d save.  
 What’s your schedule like this week?
@@ -103,15 +155,11 @@ What’s your schedule like this week?
 Cool — I’ll make sure they reach out to confirm what works best for you.
 
 [objection]
-how does it work?
-[response]
-Love the curiosity — here’s the gist: a technician comes by, checks if your home qualifies, shows you the savings estimate, and answers all your questions. If it makes sense, great. If not, no pressure.  
-Do you usually have high summer bills?
-[followup]
-Oof yeah — we’ve been seeing that a lot lately. Glad we caught you now.
-
-[objection]
 i’m out of town
+[objection]
+i’m traveling
+[objection]
+i’m not home this week
 [response]
 No worries — we’re just scheduling the **next available window**. I’ll note that you’re out of town now, but we’ll get you set for when you’re back.  
 What day are you flying back in?
