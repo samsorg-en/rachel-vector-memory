@@ -31,8 +31,8 @@ def voice():
         response = VoiceResponse()
         first_line = memory_engine.generate_response(call_sid, "initial")["response"]
 
-        # ✅ Strip [gather] from speech
-        reply, _ = first_line.split("[gather]") if "[gather]" in first_line else (first_line, None)
+        # ✅ Strip [gather] if present
+        reply = first_line.split("[gather]")[0].strip() if "[gather]" in first_line else first_line
 
         gather = Gather(
             input="speech",
@@ -41,7 +41,7 @@ def voice():
             action="/respond_twilio",
             method="POST"
         )
-        gather.say(reply.strip(), voice="Polly.Joanna")
+        gather.say(reply, voice="Polly.Joanna")
         response.append(gather)
         return str(response)
 
@@ -56,13 +56,15 @@ def voice():
 def respond_twilio():
     try:
         call_sid = request.form.get("CallSid")
-        user_input = request.form.get("SpeechResult", "").strip()
-        logger.info(f"👂 Heard from caller: {user_input}")
+        raw_input = request.form.get("SpeechResult", "")
+        user_input = raw_input.strip().lower() if raw_input else ""
+
+        logger.info(f"👂 Heard from caller: '{user_input}'")
 
         response = VoiceResponse()
 
-        # ✅ Silence Handling
-        if not user_input:
+        # ✅ Advanced Silence Check
+        if not user_input or user_input in ["", ".", "...", "uh", "um", "hmm"]:
             attempts = silent_attempts.get(call_sid, 0) + 1
             silent_attempts[call_sid] = attempts
             logger.info(f"🤫 Silence attempt #{attempts}")
@@ -85,17 +87,17 @@ def respond_twilio():
         # ✅ Reset silence tracker
         silent_attempts[call_sid] = 0
 
-        # ✅ Get Rachel’s reply
+        # ✅ Get Rachel’s Reply
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
 
-        # ✅ Strip "[gather]" from output
-        reply, _ = reply_text.split("[gather]") if "[gather]" in reply_text else (reply_text, None)
+        # ✅ Strip [gather]
+        reply = reply_text.split("[gather]")[0].strip() if "[gather]" in reply_text else reply_text
 
-        # ✅ Always gather after speaking
+        # ✅ Always gather next input
         gather = Gather(input="speech", timeout=1, speechTimeout="auto", action="/respond_twilio", method="POST")
-        gather.say(reply.strip(), voice="Polly.Joanna")
+        gather.say(reply, voice="Polly.Joanna")
         response.append(gather)
 
         return str(response)
