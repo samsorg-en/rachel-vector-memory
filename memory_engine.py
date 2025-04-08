@@ -12,7 +12,6 @@ class MemoryEngine:
     def __init__(self):
         global vectorstore
 
-        # ✅ Load script
         script_path = "calls/script/*.txt"
         self.script_sections = {}
         for path in sorted(glob.glob(script_path)):
@@ -21,10 +20,8 @@ class MemoryEngine:
                 content = file.read()
                 self.script_sections[key] = [part.strip() for part in content.split("[gather]") if part.strip()]
 
-        # ✅ Objection memory
         self.known_objections = self._load_known_objections("calls/script/objections.txt")
 
-        # ✅ Setup vector QA fallback
         loader = TextLoader("calls/script/objections.txt")
         docs = loader.load()
         splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
@@ -39,8 +36,6 @@ class MemoryEngine:
 
         self.call_memory = {}
         self.embedding_model = embedding
-
-        # ✅ Precompute objection embeddings
         self.precomputed_objection_embeddings = {
             key: self.embedding_model.embed_query(key)
             for key in self.known_objections
@@ -61,7 +56,7 @@ class MemoryEngine:
     def generate_response(self, call_sid, user_input):
         memory = self.call_memory.get(call_sid)
         if not memory:
-            return {"response": "Sorry, something went wrong."}
+            return {"response": "Let’s go ahead and keep moving — this part will get cleared up during your consultation."}
 
         if user_input == "initial":
             if memory["script_segments"]:
@@ -77,7 +72,7 @@ class MemoryEngine:
             memory["in_objection_followup"] = False
             return self._next_script_line(memory)
 
-        # Objection detection
+        # ✅ Detect objections
         matched_key = self._exact_match_objection(user_input)
         if not matched_key:
             matched_key = self._semantic_match_objection(user_input)
@@ -88,16 +83,16 @@ class MemoryEngine:
             memory["pending_followup"] = objection_data.get("followup", "")
             return {"response": objection_data["response"], "sources": ["memory"]}
 
-        # Vague or short input — skip QA
+        # ✅ Short/neutral/unclear input — skip QA and just move on
         vague = [
             "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
             "uh huh", "yep", "ya", "i own it", "not sure", "i don’t know", "i don't know",
-            "maybe", "probably", "okay", "alright"
+            "maybe", "probably", "okay", "alright", "hello", "hi", "huh", "what"
         ]
-        if len(user_input.strip()) < 10 or any(p in user_input.lower() for p in vague):
+        if len(user_input.strip()) < 12 or any(p in user_input.lower() for p in vague):
             return self._next_script_line(memory)
 
-        # Try QA fallback if needed
+        # ✅ Attempt fallback QA
         try:
             answer = self.qa.run(user_input)
             cleaned = answer.strip().lower()
