@@ -45,20 +45,24 @@ There’s a new power purchase agreement — kind of like what you’re already 
 except now you’re purchasing that power directly from your own roof, not the grid.
 
 They install the panels for free, maintain them, insure them — and instead of paying a big utility bill each month,  
-you just pay for the power you produce.
+you just pay for the power you produce at a drastically lower rate.
 
-But it’s usually a lot cheaper — again, $1,000–$1,500 per year less is pretty common.
+But it’s usually a lot cheaper — again, its anywhere from five hundred dollars to a thousand or more per year less than what you currently spend is pretty common.
 
 Now, we don’t send out a salesperson or anything — it’s just one of our local technicians who stops by,  
 does a super quick inspection, and gives you the actual savings report.  
-Nothing you sign up for on the spot or anything like that — just shows you what you’d qualify for.
+Nothing you sign up for on the spot or anything like that — just shows you what you’d qualify for. Fair enough?
+[gather]
 
 Cool — looks like I’ve got everything I need here.  
-What I’ll do is pass this to one of our head techs — he’ll probably give you a ring here in the next 10–15 minutes,  
-just real quick, to see if he’s got anyone in your area this week that can pop by and drop off the report.
+What I’ll do is pass this to one of our head techs — he’ll probably give you a ring here in the next ten to fifteen minutes,  
+to see if he’s got anyone in your area this week that can pop by and drop off the report.
 
 So just keep an eye out for that call — it should come from a 281 or 832 number, local.  
 Sound good?  
 [gather]
 
-Alright, awesome — talk soon.
+Is there any reason he wouldnt reach you here in ten?
+[gather]
+
+Alright, awesome — i'm gonna shoot him an email now and he will get with you in a few. Have a blessed day.
