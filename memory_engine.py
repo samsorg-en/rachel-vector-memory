@@ -76,8 +76,9 @@ class MemoryEngine:
         # Fallback to QA (objection handling)
         try:
             answer = self.qa.run(user_input)
+            cleaned = self._clean(answer)
             return {
-                "response": answer,
+                "response": cleaned,
                 "sources": ["memory"]
             }
         except Exception as e:
@@ -88,4 +89,4 @@ class MemoryEngine:
             }
 
     def _clean(self, text):
-        return text.replace("[gather]", "").strip()
+        return text.replace("[objection]", "").replace("[response]", "").strip()
