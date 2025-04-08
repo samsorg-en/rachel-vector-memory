@@ -66,8 +66,7 @@ class MemoryEngine:
 
         if user_input == "initial":
             if memory["script_segments"]:
-                memory["current_index"] = 1
-                return {"response": memory["script_segments"][0], "sources": ["script"]}
+                return self._next_script_line(memory)
 
         if memory.get("in_objection_followup") and memory.get("pending_followup"):
             followup = memory.pop("pending_followup")
@@ -78,6 +77,7 @@ class MemoryEngine:
             memory["in_objection_followup"] = False
             return self._next_script_line(memory)
 
+        # Objection match
         matched_key = self._exact_match_objection(user_input)
         if not matched_key:
             matched_key = self._semantic_match_objection(user_input)
@@ -88,6 +88,7 @@ class MemoryEngine:
             memory["pending_followup"] = objection_data.get("followup", "")
             return {"response": objection_data["response"], "sources": ["memory"]}
 
+        # Vague/short input → skip QA
         vague = [
             "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
             "uh huh", "yep", "ya", "i own it", "not sure", "i don’t know", "i don't know",
@@ -96,6 +97,7 @@ class MemoryEngine:
         if len(user_input.strip()) < 10 or any(p in user_input.lower() for p in vague):
             return self._next_script_line(memory)
 
+        # Fallback QA
         try:
             answer = self.qa.run(user_input)
             cleaned = answer.strip().lower()
@@ -105,6 +107,7 @@ class MemoryEngine:
             ]
             if len(cleaned) < 12 or any(p in cleaned for p in fallback_phrases + vague):
                 return self._next_script_line(memory)
+
             return {"response": answer.strip(), "sources": ["memory"]}
         except Exception as e:
             print("[⚠️ QA fallback error]", str(e))
