@@ -26,7 +26,7 @@ def voice():
     try:
         call_sid = request.form.get("CallSid")
         memory_engine.reset_script(call_sid)
-        silent_attempts[call_sid] = 0  # initialize silence attempts
+        silent_attempts[call_sid] = 0
 
         response = VoiceResponse()
         first_line = memory_engine.generate_response(call_sid, "initial")["response"]
@@ -85,19 +85,15 @@ def respond_twilio():
         # ✅ Reset silence tracker if user responded
         silent_attempts[call_sid] = 0
 
-        # ✅ Get response from script or fallback
+        # ✅ Get Rachel's response
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
 
-        if response_data.get("sources") == ["script"]:
-            gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
-            gather.say(reply_text, voice="Polly.Joanna")
-            response.append(gather)
-        else:
-            response.say(reply_text, voice="Polly.Joanna")
-            response.hangup()
-            memory_engine.reset_script(call_sid)
+        # ✅ Always gather after reply (script or objection)
+        gather = Gather(input="speech", timeout=1.5, speechTimeout="auto", action="/respond_twilio", method="POST")
+        gather.say(reply_text, voice="Polly.Joanna")
+        response.append(gather)
 
         return str(response)
 
