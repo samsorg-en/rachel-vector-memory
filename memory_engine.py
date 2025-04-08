@@ -61,7 +61,7 @@ class MemoryEngine:
     def generate_response(self, call_sid, user_input):
         memory = self.call_memory.get(call_sid)
         if not memory:
-            return {"response": "Sorry, something went wrong."}
+            return {"response": "Let’s go ahead and keep moving — this part will get cleared up during your consultation.", "sources": ["script"]}
 
         if user_input == "initial":
             if memory["script_segments"]:
