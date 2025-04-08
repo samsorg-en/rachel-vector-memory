@@ -61,11 +61,9 @@ class MemoryEngine:
     def generate_response(self, call_sid, user_input):
         memory = self.call_memory.get(call_sid)
         if not memory:
-            return {"response": "Let’s go ahead and keep moving — this part will get cleared up during your consultation.", "sources": ["fallback"]}
+            return {"response": "Sorry, something went wrong."}
 
-        user_input_clean = user_input.strip().lower()
-
-        if user_input_clean == "initial":
+        if user_input == "initial":
             if memory["script_segments"]:
                 memory["current_index"] = 1
                 return {"response": memory["script_segments"][0], "sources": ["script"]}
@@ -79,48 +77,54 @@ class MemoryEngine:
             memory["in_objection_followup"] = False
             return self._next_script_line(memory)
 
-        # ✅ Objection detection
-        matched_key = self._exact_match_objection(user_input_clean) or self._semantic_match_objection(user_input_clean, threshold=0.78)
+        # Objection detection
+        matched_key = self._exact_match_objection(user_input)
+        if not matched_key:
+            matched_key = self._semantic_match_objection(user_input)
+
         if matched_key:
             objection_data = self.known_objections[matched_key]
             memory["in_objection_followup"] = True
             memory["pending_followup"] = objection_data.get("followup", "")
             return {"response": objection_data["response"], "sources": ["memory"]}
 
-        # ✅ Shortcut for vague/soft responses
+        # Vague or short input — skip QA
         vague = [
             "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
             "uh huh", "yep", "ya", "i own it", "not sure", "i don’t know", "i don't know",
-            "maybe", "probably", "okay", "alright", "sounds good", "makes sense", "right"
+            "maybe", "probably", "okay", "alright"
         ]
-        if user_input_clean in vague or len(user_input_clean) < 10:
+        if len(user_input.strip()) < 10 or any(p in user_input.lower() for p in vague):
             return self._next_script_line(memory)
 
-        # ✅ QA fallback only if really needed
+        # Try QA fallback if needed
         try:
-            answer = self.qa.run(user_input_clean)
+            answer = self.qa.run(user_input)
             cleaned = answer.strip().lower()
             fallback_phrases = [
-                "how can i assist", "how can i help", "i don’t know", "i’m sorry",
-                "not sure", "that’s a good question", "no idea", "unsure", "i cannot"
+                "how can i assist you", "how can i help you", "i don't know",
+                "i’m sorry", "not sure", "sorry", "that's a good question"
             ]
-            if not cleaned or len(cleaned) < 12 or any(p in cleaned for p in fallback_phrases):
+            if len(cleaned) < 12 or any(p in cleaned for p in fallback_phrases + vague):
                 return self._next_script_line(memory)
-
             return {"response": answer.strip(), "sources": ["memory"]}
-
         except Exception as e:
             print("[⚠️ QA fallback error]", str(e))
             return self._next_script_line(memory)
 
     def _next_script_line(self, memory):
-        if memory["current_index"] < len(memory["script_segments"]):
-            line = memory["script_segments"][memory["current_index"]]
-            memory["current_index"] += 1
-            return {"response": line.strip(), "sources": ["script"]}
+        try:
+            if memory["current_index"] < len(memory["script_segments"]):
+                line = memory["script_segments"][memory["current_index"]]
+                memory["current_index"] += 1
+                if line.strip():
+                    return {"response": line.strip(), "sources": ["script"]}
+        except Exception as e:
+            print("[⚠️ Script progression error]", str(e))
+
         return {
             "response": "Let’s go ahead and keep moving — this part will get cleared up during your consultation.",
-            "sources": ["fallback"]
+            "sources": ["memory"]
         }
 
     def _load_known_objections(self, path):
@@ -157,11 +161,11 @@ class MemoryEngine:
 
     def _exact_match_objection(self, user_input):
         for key in self.known_objections:
-            if key in user_input:
+            if key in user_input.lower():
                 return key
         return None
 
-    def _semantic_match_objection(self, user_input, threshold=0.78):
+    def _semantic_match_objection(self, user_input, threshold=0.82):
         user_embedding = self.embedding_model.embed_query(user_input)
         best_score = 0
         best_key = None
