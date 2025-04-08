@@ -21,14 +21,16 @@ class MemoryEngine:
                 content = file.read()
                 self.script_sections[key] = [part.strip() for part in content.split("[gather]") if part.strip()]
 
-        # ✅ Objections KB
+        # ✅ Objection memory
+        self.known_objections = self._load_known_objections("calls/script/objections.txt")
+
+        # ✅ Setup vector QA fallback
         loader = TextLoader("calls/script/objections.txt")
         docs = loader.load()
-        text_splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
-        texts = text_splitter.split_documents(docs)
+        splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
+        texts = splitter.split_documents(docs)
         embedding = OpenAIEmbeddings()
         vectorstore = Chroma.from_documents(texts, embedding)
-
         retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
         self.qa = RetrievalQA.from_chain_type(
             llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7, request_timeout=8, max_tokens=256),
@@ -37,7 +39,6 @@ class MemoryEngine:
 
         self.call_memory = {}
         self.embedding_model = embedding
-        self.known_objections = self._load_known_objections("calls/script/objections.txt")
 
     def reset_script(self, call_sid):
         flat_script = []
@@ -59,37 +60,44 @@ class MemoryEngine:
         # ✅ Start of call
         if user_input == "initial":
             if memory["script_segments"]:
-                next_line = memory["script_segments"][0]
                 memory["current_index"] = 1
-                return {"response": next_line.strip(), "sources": ["script"]}
+                return {"response": memory["script_segments"][0], "sources": ["script"]}
 
-        # ✅ Objection follow-up if queued
+        # ✅ Pending objection follow-up
         if memory.get("in_objection_followup") and memory.get("pending_followup"):
             followup = memory.pop("pending_followup")
             memory["in_objection_followup"] = False
             return {"response": followup.strip(), "sources": ["followup"]}
 
-        # ✅ Continue script after follow-up
+        # ✅ Resume script if just finished objection
         if memory.get("in_objection_followup"):
             memory["in_objection_followup"] = False
             if memory["current_index"] < len(memory["script_segments"]):
-                next_line = memory["script_segments"][memory["current_index"]]
+                line = memory["script_segments"][memory["current_index"]]
                 memory["current_index"] += 1
-                return {"response": next_line.strip(), "sources": ["script"]}
+                return {"response": line.strip(), "sources": ["script"]}
 
-        # ✅ Detect and respond to objection
-        matched_key = self._semantic_match_objection(user_input)
+        # ✅ Check for exact objection match
+        matched_key = self._exact_match_objection(user_input)
         if matched_key:
-            response_data = self.known_objections[matched_key]
+            objection_data = self.known_objections[matched_key]
             memory["in_objection_followup"] = True
-            memory["pending_followup"] = response_data.get("followup", "")
-            return {"response": response_data["response"].strip(), "sources": ["memory"]}
+            memory["pending_followup"] = objection_data.get("followup", "")
+            return {"response": objection_data["response"], "sources": ["memory"]}
 
-        # ✅ Continue script
+        # ✅ Semantic fallback (rare cases only)
+        sem_key = self._semantic_match_objection(user_input)
+        if sem_key:
+            objection_data = self.known_objections[sem_key]
+            memory["in_objection_followup"] = True
+            memory["pending_followup"] = objection_data.get("followup", "")
+            return {"response": objection_data["response"], "sources": ["memory"]}
+
+        # ✅ Proceed with script
         if memory["current_index"] < len(memory["script_segments"]):
-            next_line = memory["script_segments"][memory["current_index"]]
+            line = memory["script_segments"][memory["current_index"]]
             memory["current_index"] += 1
-            return {"response": next_line.strip(), "sources": ["script"]}
+            return {"response": line.strip(), "sources": ["script"]}
 
         # ✅ Fallback QA
         try:
@@ -112,8 +120,7 @@ class MemoryEngine:
                 if i < len(lines):
                     key = lines[i].strip().lower()
                     i += 1
-                    response = ""
-                    followup = ""
+                    response, followup = "", ""
                     if i < len(lines) and lines[i].strip().startswith("[response]"):
                         i += 1
                         while i < len(lines) and not lines[i].strip().startswith("[followup]") and not lines[i].strip().startswith("[objection]"):
@@ -124,7 +131,7 @@ class MemoryEngine:
                         while i < len(lines) and not lines[i].strip().startswith("[objection]"):
                             followup += lines[i].strip() + " "
                             i += 1
-                    objections[key] = {
+                    objections[key.lower()] = {
                         "response": response.strip(),
                         "followup": followup.strip()
                     }
@@ -132,22 +139,25 @@ class MemoryEngine:
                 i += 1
         return objections
 
+    def _exact_match_objection(self, user_input):
+        for key in self.known_objections:
+            if key in user_input.lower():
+                return key
+        return None
+
     def _semantic_match_objection(self, user_input, threshold=0.82):
         user_embedding = self.embedding_model.embed_query(user_input)
-        highest_score = 0
-        best_match = None
+        best_score = 0
+        best_key = None
 
-        for objection_text in self.known_objections:
-            objection_embedding = self.embedding_model.embed_query(objection_text)
-            score = self._cosine_similarity(user_embedding, objection_embedding)
+        for key in self.known_objections:
+            key_embedding = self.embedding_model.embed_query(key)
+            score = self._cosine_similarity(user_embedding, key_embedding)
+            if score > best_score:
+                best_score = score
+                best_key = key
 
-            if score > highest_score:
-                highest_score = score
-                best_match = objection_text
-
-        if highest_score >= threshold:
-            return best_match
-        return None
+        return best_key if best_score >= threshold else None
 
     def _cosine_similarity(self, vec1, vec2):
         dot = sum(a * b for a, b in zip(vec1, vec2))
