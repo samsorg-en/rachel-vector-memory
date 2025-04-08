@@ -75,59 +75,56 @@ class MemoryEngine:
 
         if memory.get("in_objection_followup"):
             memory["in_objection_followup"] = False
-            if memory["current_index"] < len(memory["script_segments"]):
-                line = memory["script_segments"][memory["current_index"]]
-                memory["current_index"] += 1
-                return {"response": line.strip(), "sources": ["script"]}
+            return self._next_script_line(memory)
 
+        # Objection detection
         matched_key = self._exact_match_objection(user_input)
+        if not matched_key:
+            matched_key = self._semantic_match_objection(user_input)
+
         if matched_key:
             objection_data = self.known_objections[matched_key]
             memory["in_objection_followup"] = True
             memory["pending_followup"] = objection_data.get("followup", "")
             return {"response": objection_data["response"], "sources": ["memory"]}
 
-        sem_key = self._semantic_match_objection(user_input)
-        if sem_key:
-            objection_data = self.known_objections[sem_key]
-            memory["in_objection_followup"] = True
-            memory["pending_followup"] = objection_data.get("followup", "")
-            return {"response": objection_data["response"], "sources": ["memory"]}
-
-        vague_confirmations = [
+        # Vague or short? Skip QA and just progress
+        vague = [
             "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
-            "uh huh", "yep", "ya", "i own it", "not sure", "i don’t know", "i don't know"
+            "uh huh", "yep", "ya", "i own it", "not sure", "i don’t know", "i don't know",
+            "maybe", "probably", "okay", "alright"
         ]
+        if (
+            len(user_input.strip()) < 10 or
+            any(phrase in user_input.lower() for phrase in vague)
+        ):
+            return self._next_script_line(memory)
 
+        # Try QA only if necessary
         try:
             answer = self.qa.run(user_input)
             cleaned = answer.strip().lower()
             fallback_phrases = [
-                "how can i assist you", "how can i help you", "i don't know", "i’m sorry",
-                "i do not have enough context", "not sure", "sorry", "that's a good question"
+                "how can i assist you", "how can i help you", "i don't know",
+                "i’m sorry", "not sure", "sorry", "that's a good question"
             ]
-            if (
-                not cleaned or
-                len(cleaned) < 12 or
-                any(phrase in cleaned for phrase in fallback_phrases + vague_confirmations)
-            ):
-                if memory["current_index"] < len(memory["script_segments"]):
-                    line = memory["script_segments"][memory["current_index"]]
-                    memory["current_index"] += 1
-                    return {"response": line.strip(), "sources": ["script"]}
+            if len(cleaned) < 12 or any(p in cleaned for p in fallback_phrases + vague):
+                return self._next_script_line(memory)
 
             return {"response": answer.strip(), "sources": ["memory"]}
-
         except Exception as e:
             print("[⚠️ QA fallback error]", str(e))
-            if memory["current_index"] < len(memory["script_segments"]):
-                line = memory["script_segments"][memory["current_index"]]
-                memory["current_index"] += 1
-                return {"response": line.strip(), "sources": ["script"]}
-            return {
-                "response": "Let’s go ahead and keep moving — this part will get cleared up during your consultation.",
-                "sources": ["memory"]
-            }
+            return self._next_script_line(memory)
+
+    def _next_script_line(self, memory):
+        if memory["current_index"] < len(memory["script_segments"]):
+            line = memory["script_segments"][memory["current_index"]]
+            memory["current_index"] += 1
+            return {"response": line.strip(), "sources": ["script"]}
+        return {
+            "response": "Let’s go ahead and keep moving — this part will get cleared up during your consultation.",
+            "sources": ["memory"]
+        }
 
     def _load_known_objections(self, path):
         objections = {}
