@@ -63,7 +63,7 @@ class MemoryEngine:
                 memory["current_index"] = 1
                 return {"response": next_line.strip(), "sources": ["script"]}
 
-        # ✅ Run objection follow-up if queued
+        # ✅ Objection follow-up if queued
         if memory.get("in_objection_followup") and memory.get("pending_followup"):
             followup = memory.pop("pending_followup")
             memory["in_objection_followup"] = False
@@ -85,7 +85,7 @@ class MemoryEngine:
             memory["pending_followup"] = response_data.get("followup", "")
             return {"response": response_data["response"].strip(), "sources": ["memory"]}
 
-        # ✅ Move forward in script
+        # ✅ Continue script
         if memory["current_index"] < len(memory["script_segments"]):
             next_line = memory["script_segments"][memory["current_index"]]
             memory["current_index"] += 1
