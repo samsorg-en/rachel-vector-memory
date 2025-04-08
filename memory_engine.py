@@ -94,7 +94,6 @@ class MemoryEngine:
             memory["pending_followup"] = objection_data.get("followup", "")
             return {"response": objection_data["response"], "sources": ["memory"]}
 
-        # ✅ Vague confirmations to just move forward
         vague_confirmations = [
             "yeah", "yes", "sure", "i guess", "i think so",
             "that’s right", "correct", "uh huh", "yep", "ya", "i own it"
@@ -106,6 +105,8 @@ class MemoryEngine:
             if (
                 not cleaned or
                 cleaned.startswith("i don't know") or
+                cleaned.startswith("i'm sorry") or
+                "don't have enough context" in cleaned or
                 len(cleaned) < 10 or
                 any(phrase in cleaned for phrase in vague_confirmations)
             ):
@@ -113,7 +114,6 @@ class MemoryEngine:
                     line = memory["script_segments"][memory["current_index"]]
                     memory["current_index"] += 1
                     return {"response": line.strip(), "sources": ["script"]}
-
             return {"response": answer.strip(), "sources": ["memory"]}
         except Exception as e:
             print("[⚠️ QA fallback error]", str(e))
