@@ -67,7 +67,7 @@ class MemoryEngine:
         if memory.get("in_objection_followup") and memory.get("pending_followup"):
             followup = memory.pop("pending_followup")
             memory["in_objection_followup"] = False
-            return {"response": followup + " [gather]", "sources": ["followup"]}
+            return {"response": followup.strip(), "sources": ["followup"]}
 
         # ✅ Continue script after follow-up
         if memory.get("in_objection_followup"):
@@ -83,7 +83,7 @@ class MemoryEngine:
             response_data = self.known_objections[matched_key]
             memory["in_objection_followup"] = True
             memory["pending_followup"] = response_data.get("followup", "")
-            return {"response": response_data["response"] + " [gather]", "sources": ["memory"]}
+            return {"response": response_data["response"].strip(), "sources": ["memory"]}
 
         # ✅ Move forward in script
         if memory["current_index"] < len(memory["script_segments"]):
@@ -94,10 +94,10 @@ class MemoryEngine:
         # ✅ Fallback QA
         try:
             answer = self.qa.run(user_input)
-            return {"response": answer + " [gather]", "sources": ["memory"]}
+            return {"response": answer.strip(), "sources": ["memory"]}
         except Exception as e:
             print("[⚠️ QA fallback error]", str(e))
-            return {"response": "Good question — we’ll go over that during your consultation. [gather]", "sources": ["memory"]}
+            return {"response": "Good question — we’ll go over that during your consultation.", "sources": ["memory"]}
 
     def _load_known_objections(self, path):
         objections = {}
