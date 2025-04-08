@@ -102,11 +102,23 @@ class MemoryEngine:
         try:
             answer = self.qa.run(user_input)
             cleaned = answer.strip().lower()
-            if not cleaned or cleaned.startswith("i don't know") or len(cleaned) < 10:
+
+            vague_confirmations = [
+                "yeah", "yes", "sure", "i guess", "i think so",
+                "that’s right", "correct", "uh huh", "yep", "ya", "i own it"
+            ]
+
+            if (
+                not cleaned
+                or cleaned.startswith("i don't know")
+                or len(cleaned) < 10
+                or any(phrase in cleaned for phrase in vague_confirmations)
+            ):
                 if memory["current_index"] < len(memory["script_segments"]):
                     line = memory["script_segments"][memory["current_index"]]
                     memory["current_index"] += 1
                     return {"response": line.strip(), "sources": ["script"]}
+
             return {"response": answer.strip(), "sources": ["memory"]}
         except Exception as e:
             print("[⚠️ QA fallback error]", str(e))
