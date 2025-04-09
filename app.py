@@ -29,8 +29,7 @@ silent_attempts = {}
 # ✅ Audio Cache
 audio_cache = {}
 
-# ✅ ElevenLabs Text-to-Speech
-
+# ✅ ElevenLabs Text-to-Speech (updated)
 def synthesize_speech(text):
     if text in audio_cache:
         logger.info(f"✅ Cached audio found: {text}")
@@ -52,26 +51,28 @@ def synthesize_speech(text):
                 "use_speaker_boost": True
             }
         }
-        response = requests.post(url, headers=headers, json=payload)
+
+        response = requests.post(url, headers=headers, json=payload, stream=True)
         if response.status_code == 200:
             filename = f"{abs(hash(text))}.mp3"
             filepath = f"/tmp/{filename}"
             with open(filepath, "wb") as f:
-                f.write(response.content)
+                for chunk in response.iter_content(chunk_size=4096):
+                    if chunk:
+                        f.write(chunk)
 
-            for _ in range(10):
-                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                    logger.info(f"✅ Audio saved and ready: {filepath}")
-                    full_url = url_for("serve_audio", filename=filename, _external=True)
-                    audio_cache[text] = full_url
-                    return full_url
-                time.sleep(0.1)
-
-            logger.error("❌ File write timeout — MP3 never ready.")
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                logger.info(f"✅ Streamed audio saved: {filepath}")
+                full_url = url_for("serve_audio", filename=filename, _external=True)
+                audio_cache[text] = full_url
+                return full_url
+            else:
+                logger.error("❌ Audio stream wrote empty file.")
         else:
-            logger.error(f"❌ ElevenLabs Error: {response.status_code} {response.text}")
+            logger.error(f"❌ ElevenLabs Stream Error: {response.status_code} {response.text}")
     except Exception as e:
-        logger.error(f"❌ TTS Error: {e}")
+        logger.error(f"❌ TTS Stream Exception: {e}")
+
     return None
 
 # ✅ Serve Audio File
