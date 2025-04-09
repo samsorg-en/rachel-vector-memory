@@ -26,6 +26,7 @@ memory_engine = MemoryEngine()
 silent_attempts = {}
 
 # ✅ ElevenLabs Text-to-Speech
+
 def synthesize_speech(text):
     try:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}/stream"
@@ -45,15 +46,24 @@ def synthesize_speech(text):
         }
         response = requests.post(url, headers=headers, json=payload)
         if response.status_code == 200:
-            filepath = f"/tmp/{abs(hash(text))}.mp3"
+            filename = f"{abs(hash(text))}.mp3"
+            filepath = f"/tmp/{filename}"
             with open(filepath, "wb") as f:
                 f.write(response.content)
-            return filepath
+            return f"https://{request.host}/audio/{filename}"
         else:
             logger.error(f"❌ ElevenLabs Error: {response.status_code} {response.text}")
     except Exception as e:
         logger.error(f"❌ TTS Error: {e}")
     return None
+
+# ✅ Serve Audio File
+@app.route("/audio/<filename>")
+def serve_audio(filename):
+    path = f"/tmp/{filename}"
+    if os.path.exists(path):
+        return send_file(path, mimetype="audio/mpeg")
+    return "Audio not found", 404
 
 # ✅ Start Call
 @app.route("/voice", methods=["POST"])
@@ -67,11 +77,11 @@ def voice():
         first_line = memory_engine.generate_response(call_sid, "initial")["response"]
         reply = first_line.split("[gather]")[0].strip() if "[gather]" in first_line else first_line
 
-        filepath = synthesize_speech(reply)
+        audio_url = synthesize_speech(reply)
         gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
         gather.pause(length=1)
-        if filepath:
-            gather.play(filepath)
+        if audio_url:
+            gather.play(audio_url)
         else:
             gather.say(reply)
         gather.pause(length=1)
@@ -114,17 +124,17 @@ def respond_twilio():
 
             if attempts < 3:
                 gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
-                filepath = synthesize_speech(msg)
+                audio_url = synthesize_speech(msg)
                 gather.pause(length=1)
-                if filepath:
-                    gather.play(filepath)
+                if audio_url:
+                    gather.play(audio_url)
                 else:
                     gather.say(msg)
                 response.append(gather)
             else:
-                filepath = synthesize_speech(msg)
-                if filepath:
-                    response.play(filepath)
+                audio_url = synthesize_speech(msg)
+                if audio_url:
+                    response.play(audio_url)
                 else:
                     response.say(msg)
                 response.hangup()
@@ -142,11 +152,11 @@ def respond_twilio():
 
         reply = reply_text.split("[gather]")[0].strip() if "[gather]" in reply_text else reply_text
 
-        filepath = synthesize_speech(reply)
+        audio_url = synthesize_speech(reply)
         gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
         gather.pause(length=1)
-        if filepath:
-            gather.play(filepath)
+        if audio_url:
+            gather.play(audio_url)
         else:
             gather.say(reply)
         gather.pause(length=1)
