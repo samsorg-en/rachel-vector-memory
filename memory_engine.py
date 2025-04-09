@@ -100,20 +100,19 @@ class MemoryEngine:
             memory["in_objection_followup"] = True
             memory["waiting_for_followup_reply"] = True
             memory["pending_followup"] = followup_text
-            if memory["current_index"] < len(memory["script_segments"]):
-                memory["resume_index"] = memory["current_index"]
+            if memory["current_index"] + 1 < len(memory["script_segments"]):
+                memory["resume_index"] = memory["current_index"] + 1
             else:
                 memory["resume_index"] = len(memory["script_segments"])
 
             print(f"[✅ Objection matched] {matched_key} → {response_text}")
             return {"response": response_text, "sources": ["memory"]}
 
-        vague = [
+        vague_yes = [
             "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
-            "uh huh", "yep", "ya", "i own it", "not sure", "i don’t know", "i don't know",
-            "maybe", "probably", "okay", "alright", "hello", "hi", "hey"
+            "uh huh", "yep", "ya", "maybe", "probably", "okay", "alright"
         ]
-        if len(user_input.strip()) < 10 or any(p in user_input.lower() for p in vague):
+        if user_input.lower().strip() in vague_yes:
             return self._next_script_line(memory)
 
         try:
@@ -123,7 +122,7 @@ class MemoryEngine:
                 "how can i assist you", "how can i help you", "i don't know",
                 "i’m sorry", "not sure", "sorry", "that's a good question"
             ]
-            if len(cleaned) < 12 or any(p in cleaned for p in fallback_phrases + vague):
+            if len(cleaned) < 12 or any(p in cleaned for p in fallback_phrases):
                 return self._next_script_line(memory)
 
             return {"response": answer.strip(), "sources": ["memory"]}
