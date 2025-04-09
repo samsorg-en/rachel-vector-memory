@@ -7,7 +7,7 @@ from memory_engine import MemoryEngine
 import requests
 
 # ✅ Config
-ELEVENLABS_API_KEY = "44f85f83fb0d601244a277e6278fb1be"
+ELEVENLABS_API_KEY = "sk_bc11b5c020232ad11edfade246e472ffa60993e167ef2075"
 ELEVENLABS_VOICE_ID = "MioXIsoKIp7emOKpdXaL"
 
 # ✅ Logging Setup
@@ -26,7 +26,6 @@ memory_engine = MemoryEngine()
 silent_attempts = {}
 
 # ✅ ElevenLabs Text-to-Speech
-
 def synthesize_speech(text):
     try:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}/stream"
@@ -69,18 +68,12 @@ def voice():
         reply = first_line.split("[gather]")[0].strip() if "[gather]" in first_line else first_line
 
         filepath = synthesize_speech(reply)
-        gather = Gather(
-            input="speech",
-            timeout=3,
-            speechTimeout="auto",
-            action="/respond_twilio",
-            method="POST"
-        )
+        gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
         gather.pause(length=1)
         if filepath:
             gather.play(filepath)
         else:
-            gather.say(reply, voice="Polly.Joanna")  # Fallback
+            gather.say(reply)
         gather.pause(length=1)
         response.append(gather)
 
@@ -89,7 +82,7 @@ def voice():
     except Exception as e:
         logger.error(f"❌ Error in /voice: {e}")
         fallback = VoiceResponse()
-        fallback.say("Sorry, something went wrong. Please try again later.", voice="Polly.Joanna")
+        fallback.say("Sorry, something went wrong. Please try again later.")
         return str(fallback)
 
 # ✅ Respond to User Input
@@ -109,6 +102,7 @@ def respond_twilio():
         logger.info(f"🗣️ Heard from caller: '{user_input}'")
         response = VoiceResponse()
 
+        # ✅ Silence detection
         if not user_input or user_input in ["", ".", "...", "uh", "um", "hmm"]:
             attempts = silent_attempts.get(call_sid, 0) + 1
             silent_attempts[call_sid] = attempts
@@ -125,20 +119,21 @@ def respond_twilio():
                 if filepath:
                     gather.play(filepath)
                 else:
-                    gather.say(msg, voice="Polly.Joanna")
+                    gather.say(msg)
                 response.append(gather)
             else:
                 filepath = synthesize_speech(msg)
                 if filepath:
                     response.play(filepath)
                 else:
-                    response.say(msg, voice="Polly.Joanna")
+                    response.say(msg)
                 response.hangup()
                 silent_attempts.pop(call_sid, None)
                 memory_engine.reset_script(call_sid)
 
             return str(response)
 
+        # ✅ Reset silence tracker
         silent_attempts[call_sid] = 0
 
         response_data = memory_engine.generate_response(call_sid, user_input)
@@ -153,7 +148,7 @@ def respond_twilio():
         if filepath:
             gather.play(filepath)
         else:
-            gather.say(reply, voice="Polly.Joanna")
+            gather.say(reply)
         gather.pause(length=1)
         response.append(gather)
 
@@ -162,7 +157,7 @@ def respond_twilio():
     except Exception as e:
         logger.error(f"❌ Error in /respond_twilio: {e}")
         fallback = VoiceResponse()
-        fallback.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
+        fallback.say("Something went wrong. Please try again later.")
         return str(fallback)
 
 # ✅ Run the app
