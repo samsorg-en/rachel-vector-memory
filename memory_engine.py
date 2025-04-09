@@ -55,7 +55,8 @@ class MemoryEngine:
             "script_segments": flat_script,
             "current_index": 0,
             "in_objection_followup": False,
-            "pending_followup": None
+            "pending_followup": None,
+            "resume_index": None
         }
 
     def generate_response(self, call_sid, user_input):
@@ -71,13 +72,13 @@ class MemoryEngine:
         if memory.get("in_objection_followup") and memory.get("pending_followup"):
             followup = memory.pop("pending_followup")
             memory["in_objection_followup"] = False
+            memory["current_index"] = memory.pop("resume_index", memory["current_index"])
             return {"response": followup.strip(), "sources": ["followup"]}
 
         if memory.get("in_objection_followup"):
             memory["in_objection_followup"] = False
             return self._next_script_line(memory)
 
-        # Objection match
         matched_key = self._exact_match_objection(user_input)
         if not matched_key:
             matched_key = self._semantic_match_objection(user_input)
@@ -93,11 +94,11 @@ class MemoryEngine:
 
             memory["in_objection_followup"] = True
             memory["pending_followup"] = followup_text
+            memory["resume_index"] = memory["current_index"]  # ✅ Save next spot in script
 
             print(f"[✅ Objection matched] {matched_key} → {response_text}")
             return {"response": response_text, "sources": ["memory"]}
 
-        # Vague/short input → skip QA
         vague = [
             "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
             "uh huh", "yep", "ya", "i own it", "not sure", "i don’t know", "i don't know",
@@ -106,7 +107,6 @@ class MemoryEngine:
         if len(user_input.strip()) < 10 or any(p in user_input.lower() for p in vague):
             return self._next_script_line(memory)
 
-        # Fallback QA
         try:
             answer = self.qa.run(user_input)
             cleaned = answer.strip().lower()
