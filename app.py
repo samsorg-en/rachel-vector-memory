@@ -26,9 +26,16 @@ memory_engine = MemoryEngine()
 # ✅ Silence Tracker
 silent_attempts = {}
 
+# ✅ Audio Cache
+audio_cache = {}
+
 # ✅ ElevenLabs Text-to-Speech
 
 def synthesize_speech(text):
+    if text in audio_cache:
+        logger.info(f"✅ Cached audio found: {text}")
+        return audio_cache[text]
+
     try:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}/stream"
         headers = {
@@ -55,7 +62,9 @@ def synthesize_speech(text):
             for _ in range(10):
                 if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
                     logger.info(f"✅ Audio saved and ready: {filepath}")
-                    return url_for("serve_audio", filename=filename, _external=True)
+                    full_url = url_for("serve_audio", filename=filename, _external=True)
+                    audio_cache[text] = full_url
+                    return full_url
                 time.sleep(0.1)
 
             logger.error("❌ File write timeout — MP3 never ready.")
