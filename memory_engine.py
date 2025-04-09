@@ -83,10 +83,19 @@ class MemoryEngine:
             matched_key = self._semantic_match_objection(user_input)
 
         if matched_key:
-            objection_data = self.known_objections[matched_key]
+            objection_data = self.known_objections.get(matched_key, {})
+            response_text = objection_data.get("response", "").strip()
+            followup_text = objection_data.get("followup", "").strip()
+
+            if not response_text:
+                print(f"[⚠️ Empty objection response] for key: {matched_key}")
+                return self._next_script_line(memory)
+
             memory["in_objection_followup"] = True
-            memory["pending_followup"] = objection_data.get("followup", "")
-            return {"response": objection_data["response"], "sources": ["memory"]}
+            memory["pending_followup"] = followup_text
+
+            print(f"[✅ Objection matched] {matched_key} → {response_text}")
+            return {"response": response_text, "sources": ["memory"]}
 
         # Vague/short input → skip QA
         vague = [
