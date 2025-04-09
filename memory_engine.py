@@ -24,7 +24,7 @@ class MemoryEngine:
         # ✅ Objection memory
         self.known_objections = self._load_known_objections("calls/script/objections.txt")
 
-        # ✅ Setup vector QA fallback (disabled by default for now)
+        # ✅ Setup vector QA fallback
         loader = TextLoader("calls/script/objections.txt")
         docs = loader.load()
         splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
@@ -83,6 +83,15 @@ class MemoryEngine:
                 else:
                     print("[⚠️ resume_index missing — defaulting to current position]")
                 return {"response": followup.strip(), "sources": ["followup"]}
+
+        # ✅ Safe replies that should never trigger objections
+        safe_phrases = [
+            "hello", "hi", "yes", "yeah", "yep", "this is", "who is this", "how can i help",
+            "yes this is", "speaking", "it is", "you got em"
+        ]
+        for phrase in safe_phrases:
+            if phrase in user_input.lower():
+                return self._next_script_line(memory)
 
         matched_key = self._exact_match_objection(user_input)
         if not matched_key:
