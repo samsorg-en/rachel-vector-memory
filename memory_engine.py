@@ -69,12 +69,13 @@ class MemoryEngine:
             if memory["script_segments"]:
                 return self._next_script_line(memory)
 
-        # 🔧 UPDATED BLOCK WITH DEBUG + SAFETY
-        if memory.get("in_objection_followup") and memory.get("pending_followup"):
-            try:
-                followup = memory.pop("pending_followup")
-                memory["in_objection_followup"] = False
+        # 🔧 UPDATED BLOCK WITH ROBUST HANDLING
+        if memory.get("in_objection_followup"):
+            followup = memory.get("pending_followup")
+            if followup:
                 print(f"[🔁 Delivering follow-up] {followup}")
+                memory["in_objection_followup"] = False
+                memory.pop("pending_followup", None)
                 if "resume_index" in memory and memory["resume_index"] is not None:
                     memory["current_index"] = memory.pop("resume_index")
                     print(f"[📍 Resuming script at index] {memory['current_index']}")
@@ -82,13 +83,10 @@ class MemoryEngine:
                     print("[⚠️ resume_index missing — defaulting to current position]")
                     memory["current_index"] = memory.get("current_index", 0)
                 return {"response": followup.strip(), "sources": ["followup"]}
-            except Exception as e:
-                print("[❌ Follow-up handling crash]", str(e))
+            else:
+                print("[👂 Awaiting reply before follow-up — but no follow-up found!]")
+                memory["in_objection_followup"] = False
                 return self._next_script_line(memory)
-
-        if memory.get("in_objection_followup"):
-            print("[👂 Waiting for user reply before follow-up]")
-            return {"response": None, "sources": ["waiting_for_followup"]}
 
         matched_key = self._exact_match_objection(user_input)
         if not matched_key:
