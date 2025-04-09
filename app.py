@@ -54,6 +54,7 @@ def synthesize_speech(text):
 
             for _ in range(10):
                 if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                    logger.info(f"✅ Audio saved and ready: {filepath}")
                     return url_for("serve_audio", filename=filename, _external=True)
                 time.sleep(0.1)
 
@@ -69,7 +70,9 @@ def synthesize_speech(text):
 def serve_audio(filename):
     path = f"/tmp/{filename}"
     if os.path.exists(path):
+        logger.info(f"📤 Serving audio file: {path}")
         return send_file(path, mimetype="audio/mpeg")
+    logger.warning(f"⚠️ Audio file not found: {path}")
     return "Audio not found", 404
 
 # ✅ Start Call
