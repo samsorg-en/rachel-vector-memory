@@ -3,6 +3,7 @@ from twilio.twiml.voice_response import VoiceResponse, Gather, Pause, Play
 import logging
 import sys
 import os
+import time
 from memory_engine import MemoryEngine
 import requests
 
@@ -50,7 +51,13 @@ def synthesize_speech(text):
             filepath = f"/tmp/{filename}"
             with open(filepath, "wb") as f:
                 f.write(response.content)
-            return url_for("serve_audio", filename=filename, _external=True)
+
+            for _ in range(10):
+                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                    return url_for("serve_audio", filename=filename, _external=True)
+                time.sleep(0.1)
+
+            logger.error("❌ File write timeout — MP3 never ready.")
         else:
             logger.error(f"❌ ElevenLabs Error: {response.status_code} {response.text}")
     except Exception as e:
@@ -112,7 +119,6 @@ def respond_twilio():
         logger.info(f"🗣️ Heard from caller: '{user_input}'")
         response = VoiceResponse()
 
-        # ✅ Silence detection
         if not user_input or user_input in ["", ".", "...", "uh", "um", "hmm"]:
             attempts = silent_attempts.get(call_sid, 0) + 1
             silent_attempts[call_sid] = attempts
@@ -143,7 +149,6 @@ def respond_twilio():
 
             return str(response)
 
-        # ✅ Reset silence tracker
         silent_attempts[call_sid] = 0
 
         response_data = memory_engine.generate_response(call_sid, user_input)
