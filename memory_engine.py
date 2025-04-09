@@ -57,7 +57,8 @@ class MemoryEngine:
             "in_objection_followup": False,
             "pending_followup": None,
             "resume_index": None,
-            "pending_followup_handled": False
+            "pending_followup_handled": False,
+            "waiting_for_followup_reply": False
         }
 
     def generate_response(self, call_sid, user_input):
@@ -70,25 +71,18 @@ class MemoryEngine:
             if memory["script_segments"]:
                 return self._next_script_line(memory)
 
-        # 🔧 UPDATED BLOCK WITH ROBUST HANDLING + DELAY FIX + INDEX FIX
-        if memory.get("in_objection_followup") and not memory.get("pending_followup_handled", False):
+        if memory.get("waiting_for_followup_reply"):
             followup = memory.get("pending_followup")
             if followup:
                 print(f"[🔁 Delivering follow-up] {followup}")
-                memory["in_objection_followup"] = False
-                memory["pending_followup_handled"] = True
-                memory.pop("pending_followup", None)
-                if "resume_index" in memory and memory["resume_index"] is not None:
+                memory["waiting_for_followup_reply"] = False
+                memory["pending_followup"] = None
+                if memory.get("resume_index") is not None:
                     memory["current_index"] = memory.pop("resume_index")
                     print(f"[📍 Resuming script at index] {memory['current_index']}")
                 else:
                     print("[⚠️ resume_index missing — defaulting to current position]")
-                    memory["current_index"] = memory.get("current_index", 0)
                 return {"response": followup.strip(), "sources": ["followup"]}
-            else:
-                print("[👂 Awaiting reply before follow-up — but no follow-up found!]")
-                memory["in_objection_followup"] = False
-                return self._next_script_line(memory)
 
         matched_key = self._exact_match_objection(user_input)
         if not matched_key:
@@ -104,12 +98,12 @@ class MemoryEngine:
                 return self._next_script_line(memory)
 
             memory["in_objection_followup"] = True
+            memory["waiting_for_followup_reply"] = True
             memory["pending_followup"] = followup_text
-            memory["pending_followup_handled"] = False
             if memory["current_index"] < len(memory["script_segments"]):
                 memory["resume_index"] = memory["current_index"]
             else:
-                memory["resume_index"] = 0
+                memory["resume_index"] = len(memory["script_segments"])
 
             print(f"[✅ Objection matched] {matched_key} → {response_text}")
             return {"response": response_text, "sources": ["memory"]}
