@@ -39,12 +39,28 @@ class MemoryEngine:
 
         self.call_memory = {}
         self.embedding_model = embedding
+        self.call_audio_cache = {}  # 🔥 New: cache of MP3s
 
         # ✅ Precompute objection embeddings
         self.precomputed_objection_embeddings = {
             key: self.embedding_model.embed_query(key)
             for key in self.known_objections
         }
+
+        # ✅ Pre-synthesize & cache audio for all lines
+        from app import synthesize_speech
+        for section in self.script_sections.values():
+            for line in section:
+                if line.strip():
+                    self.call_audio_cache[line.strip()] = synthesize_speech(line.strip())
+        for key, data in self.known_objections.items():
+            if data.get("response"):
+                self.call_audio_cache[data["response"]] = synthesize_speech(data["response"])
+            if data.get("followup"):
+                self.call_audio_cache[data["followup"]] = synthesize_speech(data["followup"])
+
+    def get_audio_url(self, text):
+        return self.call_audio_cache.get(text.strip())
 
     def reset_script(self, call_sid):
         flat_script = []
