@@ -24,7 +24,7 @@ class MemoryEngine:
         # ✅ Objection memory
         self.known_objections = self._load_known_objections("calls/script/objections.txt")
 
-        # ✅ Setup vector QA fallback
+        # ✅ Setup vector QA fallback (disabled by default for now)
         loader = TextLoader("calls/script/objections.txt")
         docs = loader.load()
         splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
@@ -115,20 +115,7 @@ class MemoryEngine:
         if user_input.lower().strip() in vague_yes:
             return self._next_script_line(memory)
 
-        try:
-            answer = self.qa.run(user_input)
-            cleaned = answer.strip().lower()
-            fallback_phrases = [
-                "how can i assist you", "how can i help you", "i don't know",
-                "i’m sorry", "not sure", "sorry", "that's a good question"
-            ]
-            if len(cleaned) < 12 or any(p in cleaned for p in fallback_phrases):
-                return self._next_script_line(memory)
-
-            return {"response": answer.strip(), "sources": ["memory"]}
-        except Exception as e:
-            print("[⚠️ QA fallback error]", str(e))
-            return self._next_script_line(memory)
+        return self._next_script_line(memory)
 
     def _next_script_line(self, memory):
         try:
