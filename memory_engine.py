@@ -69,15 +69,18 @@ class MemoryEngine:
             if memory["script_segments"]:
                 return self._next_script_line(memory)
 
+        # 🔧 MODIFIED BLOCK START
         if memory.get("in_objection_followup") and memory.get("pending_followup"):
+            # Step 1: Bot already delivered [response], now heard customer reply
             followup = memory.pop("pending_followup")
             memory["in_objection_followup"] = False
             memory["current_index"] = memory.pop("resume_index", memory["current_index"])
             return {"response": followup.strip(), "sources": ["followup"]}
 
         if memory.get("in_objection_followup"):
-            memory["in_objection_followup"] = False
-            return self._next_script_line(memory)
+            # Step 2: Bot just delivered [response], now waiting for customer reply
+            return {"response": None, "sources": ["waiting_for_followup"]}
+        # 🔧 MODIFIED BLOCK END
 
         matched_key = self._exact_match_objection(user_input)
         if not matched_key:
