@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, url_for
 from twilio.twiml.voice_response import VoiceResponse, Gather, Pause, Play
 import logging
 import sys
@@ -50,7 +50,7 @@ def synthesize_speech(text):
             filepath = f"/tmp/{filename}"
             with open(filepath, "wb") as f:
                 f.write(response.content)
-            return f"https://{request.host}/audio/{filename}"
+            return url_for("serve_audio", filename=filename, _external=True)
         else:
             logger.error(f"❌ ElevenLabs Error: {response.status_code} {response.text}")
     except Exception as e:
