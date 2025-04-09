@@ -143,21 +143,23 @@ class MemoryEngine:
             line = lines[i].strip()
             if line.startswith("[objection]"):
                 i += 1
-                if i < len(lines):
-                    key = lines[i].strip().lower()
+                keys = []
+                while i < len(lines) and not lines[i].strip().startswith("[response]") and not lines[i].strip().startswith("[objection]"):
+                    keys.append(lines[i].strip().lower())
                     i += 1
-                    response, followup = "", ""
-                    if i < len(lines) and lines[i].strip().startswith("[response]"):
+                response, followup = "", ""
+                if i < len(lines) and lines[i].strip().startswith("[response]"):
+                    i += 1
+                    while i < len(lines) and not lines[i].strip().startswith("[followup]") and not lines[i].strip().startswith("[objection]"):
+                        response += lines[i].strip() + " "
                         i += 1
-                        while i < len(lines) and not lines[i].strip().startswith("[followup]") and not lines[i].strip().startswith("[objection]"):
-                            response += lines[i].strip() + " "
-                            i += 1
-                    if i < len(lines) and lines[i].strip().startswith("[followup]"):
+                if i < len(lines) and lines[i].strip().startswith("[followup]"):
+                    i += 1
+                    while i < len(lines) and not lines[i].strip().startswith("[objection]"):
+                        followup += lines[i].strip() + " "
                         i += 1
-                        while i < len(lines) and not lines[i].strip().startswith("[objection]"):
-                            followup += lines[i].strip() + " "
-                            i += 1
-                    objections[key.lower()] = {
+                for key in keys:
+                    objections[key] = {
                         "response": response.strip(),
                         "followup": followup.strip()
                     }
