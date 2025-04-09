@@ -1,5 +1,5 @@
-from flask import Flask, request
-from twilio.twiml.voice_response import VoiceResponse, Gather, Pause
+from flask import Flask, request, send_file
+from twilio.twiml.voice_response import VoiceResponse, Gather, Pause, Play
 import logging
 import sys
 import os
@@ -46,13 +46,14 @@ def synthesize_speech(text):
         }
         response = requests.post(url, headers=headers, json=payload)
         if response.status_code == 200:
-            with open("/tmp/response.mp3", "wb") as f:
+            filepath = f"/tmp/{abs(hash(text))}.mp3"
+            with open(filepath, "wb") as f:
                 f.write(response.content)
-            return "/tmp/response.mp3"
+            return filepath
         else:
-            logger.error(f"\u274c ElevenLabs Error: {response.status_code} {response.text}")
+            logger.error(f"❌ ElevenLabs Error: {response.status_code} {response.text}")
     except Exception as e:
-        logger.error(f"\u274c TTS Error: {e}")
+        logger.error(f"❌ TTS Error: {e}")
     return None
 
 # ✅ Start Call
@@ -67,6 +68,7 @@ def voice():
         first_line = memory_engine.generate_response(call_sid, "initial")["response"]
         reply = first_line.split("[gather]")[0].strip() if "[gather]" in first_line else first_line
 
+        filepath = synthesize_speech(reply)
         gather = Gather(
             input="speech",
             timeout=3,
@@ -75,14 +77,17 @@ def voice():
             method="POST"
         )
         gather.pause(length=1)
-        gather.say(reply, voice="Polly.Joanna")  # Placeholder fallback
+        if filepath:
+            gather.play(filepath)
+        else:
+            gather.say(reply, voice="Polly.Joanna")  # Fallback
         gather.pause(length=1)
         response.append(gather)
 
         return str(response)
 
     except Exception as e:
-        logger.error(f"\u274c Error in /voice: {e}")
+        logger.error(f"❌ Error in /voice: {e}")
         fallback = VoiceResponse()
         fallback.say("Sorry, something went wrong. Please try again later.", voice="Polly.Joanna")
         return str(fallback)
@@ -91,18 +96,23 @@ def voice():
 @app.route("/respond_twilio", methods=["POST"])
 def respond_twilio():
     try:
-        call_sid = request.form.get("CallSid")
-        raw_input = request.form.get("SpeechResult", "")
+        if request.is_json:
+            data = request.get_json()
+            call_sid = data.get("session_id", "default_sid")
+            raw_input = data.get("user_input", "")
+        else:
+            call_sid = request.form.get("CallSid")
+            raw_input = request.form.get("SpeechResult", "")
+
         user_input = raw_input.strip().lower() if raw_input else ""
 
-        logger.info(f"\ud83d\udde3\ufe0f Heard from caller: '{user_input}'")
+        logger.info(f"🗣️ Heard from caller: '{user_input}'")
         response = VoiceResponse()
 
-        # ✅ Silence Detection
         if not user_input or user_input in ["", ".", "...", "uh", "um", "hmm"]:
             attempts = silent_attempts.get(call_sid, 0) + 1
             silent_attempts[call_sid] = attempts
-            logger.info(f"\ud83e\ude2b Silence attempt #{attempts}")
+            logger.info(f"🨫 Silence attempt #{attempts}")
 
             msg = "Can you still hear me?" if attempts == 1 else (
                 "Just checking back in — are you still there?" if attempts == 2 else
@@ -110,10 +120,19 @@ def respond_twilio():
 
             if attempts < 3:
                 gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
-                gather.say(msg, voice="Polly.Joanna")
+                filepath = synthesize_speech(msg)
+                gather.pause(length=1)
+                if filepath:
+                    gather.play(filepath)
+                else:
+                    gather.say(msg, voice="Polly.Joanna")
                 response.append(gather)
             else:
-                response.say(msg, voice="Polly.Joanna")
+                filepath = synthesize_speech(msg)
+                if filepath:
+                    response.play(filepath)
+                else:
+                    response.say(msg, voice="Polly.Joanna")
                 response.hangup()
                 silent_attempts.pop(call_sid, None)
                 memory_engine.reset_script(call_sid)
@@ -124,20 +143,24 @@ def respond_twilio():
 
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
-        logger.info(f"\ud83d\udde3\ufe0f Rachel: {reply_text}")
+        logger.info(f"🗣️ Rachel: {reply_text}")
 
         reply = reply_text.split("[gather]")[0].strip() if "[gather]" in reply_text else reply_text
 
+        filepath = synthesize_speech(reply)
         gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
         gather.pause(length=1)
-        gather.say(reply, voice="Polly.Joanna")
+        if filepath:
+            gather.play(filepath)
+        else:
+            gather.say(reply, voice="Polly.Joanna")
         gather.pause(length=1)
         response.append(gather)
 
         return str(response)
 
     except Exception as e:
-        logger.error(f"\u274c Error in /respond_twilio: {e}")
+        logger.error(f"❌ Error in /respond_twilio: {e}")
         fallback = VoiceResponse()
         fallback.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
         return str(fallback)
@@ -145,5 +168,5 @@ def respond_twilio():
 # ✅ Run the app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    logger.info(f"\ud83d\ude80 Starting Rachel Memory Engine on port {port}")
+    logger.info(f"🚀 Starting Rachel Memory Engine on port {port}")
     app.run(host="0.0.0.0", port=port)
