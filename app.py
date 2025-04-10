@@ -7,6 +7,7 @@ from memory_engine import MemoryEngine
 from urllib.parse import quote_plus
 import io
 import requests
+import threading
 
 # ✅ Logging Setup
 logging.basicConfig(
@@ -23,6 +24,20 @@ memory_engine = MemoryEngine()
 # ✅ Silence Tracker
 silent_attempts = {}
 
+# ✅ Pre-cache next line
+pre_cache_lines = {}
+
+def precache_next_line(call_sid):
+    next_line = memory_engine.peek_next_line(call_sid)
+    if next_line:
+        reply = next_line.split("[gather]")[0].strip() if "[gather]" in next_line else next_line
+        url_encoded_text = quote_plus(reply)
+        try:
+            requests.get(f"https://rachel-vector-memory.fly.dev/speech?text={url_encoded_text}")
+            logger.info(f"🔊 Pre-cached next line for {call_sid}")
+        except Exception as e:
+            logger.error(f"❌ Pre-cache failed for {call_sid}: {e}")
+
 # ✅ Start Call
 @app.route("/voice", methods=["POST"])
 def voice():
@@ -35,6 +50,9 @@ def voice():
         first_line = memory_engine.generate_response(call_sid, "initial")["response"]
         reply = first_line.split("[gather]")[0].strip() if "[gather]" in first_line else first_line
         url_encoded_text = quote_plus(reply)
+
+        # ✅ Start thread to pre-cache next line
+        threading.Thread(target=precache_next_line, args=(call_sid,)).start()
 
         gather = Gather(
             input="speech",
@@ -101,6 +119,9 @@ def respond_twilio():
 
         reply = reply_text.split("[gather]")[0].strip() if "[gather]" in reply_text else reply_text
         url_encoded_text = quote_plus(reply)
+
+        # ✅ Start thread to pre-cache next line
+        threading.Thread(target=precache_next_line, args=(call_sid,)).start()
 
         # ✅ Final Gather after response
         gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
