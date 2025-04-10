@@ -1,8 +1,7 @@
-from flask import Flask, request, send_file, Response, url_for
-from twilio.twiml.voice_response import VoiceResponse, Gather, Pause, Play
+from flask import Flask, request, Response
+from twilio.twiml.voice_response import VoiceResponse, Gather
 import logging
 import sys
-import os
 import time
 from memory_engine import MemoryEngine
 import requests
@@ -12,7 +11,7 @@ from io import BytesIO
 ELEVENLABS_API_KEY = "sk_bc11b5c020232ad11edfade246e472ffa60993e167ef2075"
 ELEVENLABS_VOICE_ID = "MioXIsoKIp7emOKpdXaL"
 
-# ✅ Logging Setup
+# ✅ Logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -20,14 +19,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ✅ Flask App Setup
+# ✅ Flask Setup
 app = Flask(__name__)
-audio_memory_cache = {}  # Stores {text: BytesIO(audio)} for fast response
+audio_memory_cache = {}
 
-# ✅ ElevenLabs Text-to-Speech (Memory-Based)
+# ✅ ElevenLabs Synthesizer
 def synthesize_speech(text):
     if text in audio_memory_cache:
-        logger.info(f"✅ In-memory audio found: {text}")
+        logger.info(f"✅ Cached audio hit: {text}")
         return text
 
     try:
@@ -48,8 +47,8 @@ def synthesize_speech(text):
         }
 
         start = time.time()
-        response = requests.post(url, headers=headers, json=payload, stream=True, timeout=10)
-        logger.info(f"⏱️ Synthesis time: {time.time() - start:.2f}s")
+        response = requests.post(url, headers=headers, json=payload, stream=True)
+        logger.info(f"🕐 TTS time: {time.time() - start:.2f}s")
 
         if response.status_code == 200:
             audio_data = BytesIO()
@@ -57,34 +56,27 @@ def synthesize_speech(text):
                 if chunk:
                     audio_data.write(chunk)
             audio_data.seek(0)
-
             if audio_data.getbuffer().nbytes > 0:
                 audio_memory_cache[text] = audio_data
-                logger.info(f"✅ Audio preloaded into memory: {text}")
                 return text
-            else:
-                logger.error("❌ Audio stream returned empty.")
         else:
-            logger.error(f"❌ ElevenLabs Stream Error: {response.status_code} {response.text}")
+            logger.error(f"❌ ElevenLabs Error: {response.status_code} {response.text}")
     except Exception as e:
-        logger.error(f"❌ TTS Stream Exception: {e}")
-
+        logger.error(f"❌ TTS Exception: {e}")
     return None
 
-# ✅ Serve Audio File (From Memory)
+# ✅ Serve Audio Endpoint
 @app.route("/audio/<key>")
 def serve_audio(key):
     if key in audio_memory_cache:
-        logger.info(f"📤 Serving in-memory audio: {key}")
         return Response(audio_memory_cache[key].getvalue(), mimetype="audio/mpeg")
-    logger.warning(f"⚠️ Audio key not found in memory: {key}")
     return "Audio not found", 404
 
-# ✅ Initialize Engine
+# ✅ Memory Engine Init
 memory_engine = MemoryEngine(synthesize_fn=synthesize_speech)
 silent_attempts = {}
 
-# ✅ Start Call
+# ✅ /voice – Call Entry Point
 @app.route("/voice", methods=["POST"])
 def voice():
     try:
@@ -98,43 +90,34 @@ def voice():
 
         audio_key = synthesize_speech(reply)
         gather = Gather(input="speech", timeout=2, speechTimeout="auto", action="/respond_twilio", method="POST")
-        gather.pause(length=0.6)
         if audio_key:
             gather.play(f"/audio/{audio_key}")
         else:
             gather.say(reply)
-        gather.pause(length=0.6)
         response.append(gather)
 
         return str(response)
-
     except Exception as e:
         logger.error(f"❌ Error in /voice: {e}")
         fallback = VoiceResponse()
-        fallback.say("Sorry, something went wrong. Please try again later.")
+        fallback.say("Sorry, something went wrong.")
         return str(fallback)
 
-# ✅ Respond to User Input
+# ✅ /respond_twilio – Handle Replies
 @app.route("/respond_twilio", methods=["POST"])
 def respond_twilio():
     try:
-        if request.is_json:
-            data = request.get_json()
-            call_sid = data.get("session_id", "default_sid")
-            raw_input = data.get("user_input", "")
-        else:
-            call_sid = request.form.get("CallSid")
-            raw_input = request.form.get("SpeechResult", "")
-
+        call_sid = request.form.get("CallSid")
+        raw_input = request.form.get("SpeechResult", "")
         user_input = raw_input.strip().lower() if raw_input else ""
         logger.info(f"🗣️ Heard from caller: '{user_input}'")
+
         response = VoiceResponse()
 
+        # Handle silence
         if not user_input or user_input in ["", ".", "...", "uh", "um", "hmm"]:
             attempts = silent_attempts.get(call_sid, 0) + 1
             silent_attempts[call_sid] = attempts
-            logger.info(f"🨫 Silence attempt #{attempts}")
-
             msg = "Can you still hear me?" if attempts == 1 else (
                 "Just checking back in — are you still there?" if attempts == 2 else
                 "Okay, I’ll go ahead and try again another time. Take care!")
@@ -142,7 +125,6 @@ def respond_twilio():
             if attempts < 3:
                 gather = Gather(input="speech", timeout=2, speechTimeout="auto", action="/respond_twilio", method="POST")
                 audio_key = synthesize_speech(msg)
-                gather.pause(length=0.6)
                 if audio_key:
                     gather.play(f"/audio/{audio_key}")
                 else:
@@ -157,34 +139,26 @@ def respond_twilio():
                 response.hangup()
                 silent_attempts.pop(call_sid, None)
                 memory_engine.reset_script(call_sid)
-
             return str(response)
 
+        # Reset silence tracker
         silent_attempts[call_sid] = 0
+
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
-        logger.info(f"🗣️ Rachel: {reply_text}")
-
         reply = reply_text.split("[gather]")[0].strip() if "[gather]" in reply_text else reply_text
 
         audio_key = synthesize_speech(reply)
         gather = Gather(input="speech", timeout=2, speechTimeout="auto", action="/respond_twilio", method="POST")
-        gather.pause(length=0.6)
         if audio_key:
             gather.play(f"/audio/{audio_key}")
         else:
             gather.say(reply)
-        gather.pause(length=0.6)
         response.append(gather)
 
         return str(response)
-
     except Exception as e:
         logger.error(f"❌ Error in /respond_twilio: {e}")
         fallback = VoiceResponse()
         fallback.say("Something went wrong. Please try again later.")
         return str(fallback)
-
-# ✅ Run Flask (Option A Mode)
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
