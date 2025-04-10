@@ -144,7 +144,15 @@ def speech():
             if chunk:
                 yield chunk
 
-    return Response(generate(), mimetype="audio/mpeg")
+    return Response(
+        generate(),
+        mimetype="audio/mpeg",
+        headers={
+            "Transfer-Encoding": "chunked",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        }
+    )
 
 # ✅ Run the app
 if __name__ == "__main__":
