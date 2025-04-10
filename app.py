@@ -47,7 +47,10 @@ def synthesize_speech(text):
             }
         }
 
-        response = requests.post(url, headers=headers, json=payload, stream=True)
+        start = time.time()
+        response = requests.post(url, headers=headers, json=payload, stream=True, timeout=10)
+        logger.info(f"⏱️ Synthesis time: {time.time() - start:.2f}s")
+
         if response.status_code == 200:
             audio_data = BytesIO()
             for chunk in response.iter_content(chunk_size=4096):
@@ -96,13 +99,13 @@ def voice():
         reply = first_line.split("[gather]")[0].strip() if "[gather]" in first_line else first_line
 
         audio_key = synthesize_speech(reply)
-        gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
-        gather.pause(length=1)
+        gather = Gather(input="speech", timeout=2, speechTimeout="auto", action="/respond_twilio", method="POST")
+        gather.pause(length=0.6)
         if audio_key:
             gather.play(f"/audio/{audio_key}")
         else:
             gather.say(reply)
-        gather.pause(length=1)
+        gather.pause(length=0.6)
         response.append(gather)
 
         return str(response)
@@ -140,9 +143,9 @@ def respond_twilio():
                 "Okay, I’ll go ahead and try again another time. Take care!")
 
             if attempts < 3:
-                gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
+                gather = Gather(input="speech", timeout=2, speechTimeout="auto", action="/respond_twilio", method="POST")
                 audio_key = synthesize_speech(msg)
-                gather.pause(length=1)
+                gather.pause(length=0.6)
                 if audio_key:
                     gather.play(f"/audio/{audio_key}")
                 else:
@@ -169,13 +172,13 @@ def respond_twilio():
         reply = reply_text.split("[gather]")[0].strip() if "[gather]" in reply_text else reply_text
 
         audio_key = synthesize_speech(reply)
-        gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
-        gather.pause(length=1)
+        gather = Gather(input="speech", timeout=2, speechTimeout="auto", action="/respond_twilio", method="POST")
+        gather.pause(length=0.6)
         if audio_key:
             gather.play(f"/audio/{audio_key}")
         else:
             gather.say(reply)
-        gather.pause(length=1)
+        gather.pause(length=0.6)
         response.append(gather)
 
         return str(response)
