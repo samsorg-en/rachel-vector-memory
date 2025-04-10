@@ -1,8 +1,8 @@
 flask
 requests
+twilio
+gunicorn
 langchain
 langchain-community
 langchain-openai
 chromadb
-twilio
-gunicorn
