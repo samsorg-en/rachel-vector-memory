@@ -47,12 +47,12 @@ class MemoryEngine:
             for key in self.known_objections
         }
 
-        # ✅ Pre-cache first 3 script lines for speed
+        # ✅ Pre-cache first 2 script lines for speed
         self.script_precache = []
         for section in self.script_sections.values():
             self.script_precache.extend(section)
         self.script_precache_audio = {}
-        for i, line in enumerate(self.script_precache[:3]):
+        for i, line in enumerate(self.script_precache[:2]):
             try:
                 url = f"https://rachel-vector-memory.fly.dev/speech?text={requests.utils.quote(line)}"
                 requests.get(url, timeout=1)
@@ -142,6 +142,18 @@ class MemoryEngine:
         except Exception as e:
             print("[⚠️ Script progression error]", str(e))
         return {"response": "", "sources": ["script"]}
+
+    def peek_next_line(self, call_sid, offset=2):
+        memory = self.call_memory.get(call_sid)
+        if not memory:
+            return None
+        index = memory["current_index"] + offset - 1
+        if index < len(memory["script_segments"]):
+            return memory["script_segments"][index]
+        return None
+
+    def get_initial_script_lines(self):
+        return self.script_precache[:2]
 
     def _load_known_objections(self, path):
         objections = {}
