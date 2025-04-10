@@ -47,13 +47,15 @@ class MemoryEngine:
             for key in self.known_objections
         }
 
-        # ✅ Pre-synthesize & cache audio for all lines
-        from app import synthesize_speech
+        # ✅ Pre-synthesize & cache audio for all lines (with delayed import)
         for section in self.script_sections.values():
             for line in section:
                 if line.strip():
+                    from app import synthesize_speech  # 🚫 fixed circular import
                     self.call_audio_cache[line.strip()] = synthesize_speech(line.strip())
+
         for key, data in self.known_objections.items():
+            from app import synthesize_speech  # 🚫 import again here safely
             if data.get("response"):
                 self.call_audio_cache[data["response"]] = synthesize_speech(data["response"])
             if data.get("followup"):
