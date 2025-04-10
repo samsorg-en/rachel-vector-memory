@@ -53,7 +53,8 @@ def precache_audio(text):
 try:
     preload_lines = memory_engine.get_initial_script_lines()
     for line in preload_lines:
-        threading.Thread(target=precache_audio, args=(line,)).start()
+        if line not in audio_cache:
+            threading.Thread(target=precache_audio, args=(line,)).start()
 except Exception as e:
     logger.error(f"❌ Failed to preload initial lines: {e}")
 
@@ -72,8 +73,8 @@ def voice():
 
         # ✅ Pre-cache next line in background
         def precache_next_line():
-            next_line = memory_engine.peek_next_line(call_sid, lookahead=2)
-            if next_line:
+            next_line = memory_engine.peek_next_line(call_sid, offset=2)
+            if next_line and next_line not in audio_cache:
                 precache_audio(next_line)
                 logger.info(f"🔊 Pre-cached next line for {call_sid}")
 
@@ -142,8 +143,8 @@ def respond_twilio():
         url_encoded_text = quote_plus(reply)
 
         def precache_next_line():
-            next_line = memory_engine.peek_next_line(call_sid, lookahead=2)
-            if next_line:
+            next_line = memory_engine.peek_next_line(call_sid, offset=2)
+            if next_line and next_line not in audio_cache:
                 precache_audio(next_line)
                 logger.info(f"🔊 Pre-cached next line for {call_sid}")
 
