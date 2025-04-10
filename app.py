@@ -184,3 +184,7 @@ def respond_twilio():
         fallback = VoiceResponse()
         fallback.say("Something went wrong. Please try again later.")
         return str(fallback)
+
+# ✅ Run Flask (Option A Mode)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
