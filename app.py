@@ -1,3 +1,62 @@
+from flask import Flask, request, send_file, Response
+from twilio.twiml.voice_response import VoiceResponse, Gather, Pause
+import logging
+import sys
+import os
+from memory_engine import MemoryEngine
+from urllib.parse import quote_plus
+import io
+import requests
+import threading
+
+# ✅ Logging Setup
+logging.basicConfig(
+    level="INFO",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
+
+# ✅ Flask App Setup
+app = Flask(__name__)
+memory_engine = MemoryEngine()
+
+# ✅ Silence Tracker
+silent_attempts = {}
+
+# ✅ In-memory audio cache
+audio_cache = {}
+
+def precache_audio(text):
+    if text in audio_cache:
+        return
+    try:
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL/stream"
+        headers = {
+            "xi-api-key": "sk_bc11b5c020232ad11edfade246e472ffa60993e167ef2075",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "text": text,
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
+        }
+        response = requests.post(url, json=payload, headers=headers, stream=True)
+        audio_cache[text] = b"".join(response.iter_content(chunk_size=2048))
+        logger.info(f"🔊 Preloaded audio for: {text}")
+    except Exception as e:
+        logger.error(f"❌ Preload failed for: {text} — {e}")
+
+# ✅ Preload top 2 script lines at startup
+try:
+    preload_lines = memory_engine.get_initial_script_lines()
+    for line in preload_lines:
+        threading.Thread(target=precache_audio, args=(line,)).start()
+except Exception as e:
+    logger.error(f"❌ Failed to preload initial lines: {e}")
+
 # ✅ Start Call
 @app.route("/voice", methods=["POST"])
 def voice():
@@ -13,7 +72,7 @@ def voice():
 
         # ✅ Pre-cache next line in background
         def precache_next_line():
-            next_line = memory_engine.peek_next_line(call_sid, offset=2)
+            next_line = memory_engine.peek_next_line(call_sid, lookahead=2)
             if next_line:
                 precache_audio(next_line)
                 logger.info(f"🔊 Pre-cached next line for {call_sid}")
@@ -83,7 +142,7 @@ def respond_twilio():
         url_encoded_text = quote_plus(reply)
 
         def precache_next_line():
-            next_line = memory_engine.peek_next_line(call_sid, offset=2)
+            next_line = memory_engine.peek_next_line(call_sid, lookahead=2)
             if next_line:
                 precache_audio(next_line)
                 logger.info(f"🔊 Pre-cached next line for {call_sid}")
@@ -103,3 +162,57 @@ def respond_twilio():
         fallback = VoiceResponse()
         fallback.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
         return str(fallback)
+
+# ✅ ElevenLabs Speech Endpoint
+@app.route("/speech")
+def speech():
+    text = request.args.get("text", "")
+    if text in audio_cache:
+        return Response(
+            io.BytesIO(audio_cache[text]),
+            mimetype="audio/mpeg",
+            headers={
+                "Transfer-Encoding": "chunked",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive"
+            }
+        )
+
+    voice_id = "EXAVITQu4vr4xnSDxMaL"
+    api_key = "sk_bc11b5c020232ad11edfade246e472ffa60993e167ef2075"
+
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream"
+    headers = {
+        "xi-api-key": api_key,
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "text": text,
+        "voice_settings": {
+            "stability": 0.5,
+            "similarity_boost": 0.75
+        }
+    }
+
+    response = requests.post(url, json=payload, headers=headers, stream=True)
+
+    def generate():
+        for chunk in response.iter_content(chunk_size=2048):
+            if chunk:
+                yield chunk
+
+    return Response(
+        generate(),
+        mimetype="audio/mpeg",
+        headers={
+            "Transfer-Encoding": "chunked",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        }
+    )
+
+# ✅ Run the app
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    logger.info(f"🚀 Starting Rachel Memory Engine on port {port}")
+    app.run(host="0.0.0.0", port=port)
