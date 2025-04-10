@@ -42,9 +42,8 @@ class MemoryEngine:
 
         self.call_memory = {}
         self.embedding_model = embedding
-        self.call_audio_cache = {}  # 🔥 New: cache of MP3s
+        self.call_audio_cache = {}
 
-        # ✅ Precompute objection embeddings
         self.precomputed_objection_embeddings = {
             key: self.embedding_model.embed_query(key)
             for key in self.known_objections
@@ -54,13 +53,18 @@ class MemoryEngine:
         if self.synthesize:
             for section in self.script_sections.values():
                 for line in section:
-                    if line.strip():
-                        self.call_audio_cache[line.strip()] = self.synthesize(line.strip())
+                    if line.strip() and line.strip() not in self.call_audio_cache:
+                        try:
+                            self.call_audio_cache[line.strip()] = self.synthesize(line.strip())
+                        except Exception as e:
+                            print(f"[⚠️ Failed to synthesize] {line.strip()} → {e}")
             for key, data in self.known_objections.items():
-                if data.get("response"):
-                    self.call_audio_cache[data["response"]] = self.synthesize(data["response"])
-                if data.get("followup"):
-                    self.call_audio_cache[data["followup"]] = self.synthesize(data["followup"])
+                for part in [data.get("response"), data.get("followup")]:
+                    if part and part not in self.call_audio_cache:
+                        try:
+                            self.call_audio_cache[part] = self.synthesize(part)
+                        except Exception as e:
+                            print(f"[⚠️ Failed to synthesize objection] {part} → {e}")
 
     def get_audio_url(self, text):
         return self.call_audio_cache.get(text.strip())
@@ -103,7 +107,6 @@ class MemoryEngine:
                     print("[⚠️ resume_index missing — defaulting to current position]")
                 return {"response": followup.strip(), "sources": ["followup"]}
 
-        # ✅ Safe replies that should never trigger objections
         safe_phrases = [
             "hello", "hi", "yes", "yeah", "yep", "this is", "who is this", "how can i help",
             "yes this is", "speaking", "it is", "you got em"
