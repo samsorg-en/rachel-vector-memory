@@ -4,7 +4,6 @@ import logging
 import sys
 import os
 import time
-from memory_engine import MemoryEngine
 import requests
 
 # ✅ Config
@@ -21,12 +20,8 @@ logger = logging.getLogger(__name__)
 
 # ✅ Flask App Setup
 app = Flask(__name__)
-memory_engine = MemoryEngine()
 
-# ✅ Silence Tracker
-silent_attempts = {}
-
-# ✅ ElevenLabs Text-to-Speech
+# ✅ ElevenLabs Text-to-Speech (define this FIRST!)
 def synthesize_speech(text):
     try:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}/stream"
@@ -59,6 +54,15 @@ def synthesize_speech(text):
     except Exception as e:
         logger.error(f"❌ Error synthesizing speech: {e}")
     return None
+
+# ✅ NOW safely import MemoryEngine
+from memory_engine import MemoryEngine
+
+# ✅ Init
+memory_engine = MemoryEngine()
+
+# ✅ Silence Tracker
+silent_attempts = {}
 
 # ✅ Serve Audio
 @app.route("/audio/<filename>")
