@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, Response
 from twilio.twiml.voice_response import VoiceResponse, Gather, Pause
 import logging
 import sys
@@ -138,7 +138,13 @@ def speech():
     }
 
     response = requests.post(url, json=payload, headers=headers, stream=True)
-    return send_file(io.BytesIO(response.content), mimetype="audio/mpeg")
+
+    def generate():
+        for chunk in response.iter_content(chunk_size=4096):
+            if chunk:
+                yield chunk
+
+    return Response(generate(), mimetype="audio/mpeg")
 
 # ✅ Run the app
 if __name__ == "__main__":
