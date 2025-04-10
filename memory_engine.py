@@ -9,8 +9,11 @@ import os, glob
 vectorstore = None
 
 class MemoryEngine:
-    def __init__(self):
+    def __init__(self, synthesize_fn=None):
         global vectorstore
+
+        # ✅ Inject synthesize function from app.py
+        self.synthesize = synthesize_fn
 
         # ✅ Load script
         script_path = "calls/script/*.txt"
@@ -48,16 +51,16 @@ class MemoryEngine:
         }
 
         # ✅ Pre-synthesize & cache audio for all lines
-        from app import synthesize_speech
-        for section in self.script_sections.values():
-            for line in section:
-                if line.strip():
-                    self.call_audio_cache[line.strip()] = synthesize_speech(line.strip())
-        for key, data in self.known_objections.items():
-            if data.get("response"):
-                self.call_audio_cache[data["response"]] = synthesize_speech(data["response"])
-            if data.get("followup"):
-                self.call_audio_cache[data["followup"]] = synthesize_speech(data["followup"])
+        if self.synthesize:
+            for section in self.script_sections.values():
+                for line in section:
+                    if line.strip():
+                        self.call_audio_cache[line.strip()] = self.synthesize(line.strip())
+            for key, data in self.known_objections.items():
+                if data.get("response"):
+                    self.call_audio_cache[data["response"]] = self.synthesize(data["response"])
+                if data.get("followup"):
+                    self.call_audio_cache[data["followup"]] = self.synthesize(data["followup"])
 
     def get_audio_url(self, text):
         return self.call_audio_cache.get(text.strip())
