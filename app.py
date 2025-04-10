@@ -10,7 +10,7 @@ import requests
 
 # ✅ Logging Setup
 logging.basicConfig(
-    level=logging.INFO,
+    level="INFO",
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
@@ -44,7 +44,7 @@ def voice():
             method="POST"
         )
         gather.pause(length=1)
-        gather.play(f"https://c1e683b7-68a3-4488-b9b7-6add18b2c7d7-00-2e67wml3xjfbp.spock.replit.dev/speech?text={url_encoded_text}")
+        gather.play(f"https://rachel-vector-memory.fly.dev/speech?text={url_encoded_text}")
         gather.pause(length=1)
         response.append(gather)
         return str(response)
@@ -74,13 +74,13 @@ def respond_twilio():
 
             if attempts == 1:
                 gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
-                gather.play("https://c1e683b7-68a3-4488-b9b7-6add18b2c7d7-00-2e67wml3xjfbp.spock.replit.dev/speech?text=Can+you+still+hear+me%3F")
+                gather.play("https://rachel-vector-memory.fly.dev/speech?text=Can+you+still+hear+me%3F")
                 response.append(gather)
                 return str(response)
 
             elif attempts == 2:
                 gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
-                gather.play("https://c1e683b7-68a3-4488-b9b7-6add18b2c7d7-00-2e67wml3xjfbp.spock.replit.dev/speech?text=Just+checking+back+in+%E2%80%94+are+you+still+there%3F")
+                gather.play("https://rachel-vector-memory.fly.dev/speech?text=Just+checking+back+in+%E2%80%94+are+you+still+there%3F")
                 response.append(gather)
                 return str(response)
 
@@ -105,7 +105,7 @@ def respond_twilio():
         # ✅ Final Gather after response
         gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
         gather.pause(length=1)
-        gather.play(f"https://c1e683b7-68a3-4488-b9b7-6add18b2c7d7-00-2e67wml3xjfbp.spock.replit.dev/speech?text={url_encoded_text}")
+        gather.play(f"https://rachel-vector-memory.fly.dev/speech?text={url_encoded_text}")
         gather.pause(length=1)
         response.append(gather)
 
