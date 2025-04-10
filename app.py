@@ -140,7 +140,7 @@ def speech():
     response = requests.post(url, json=payload, headers=headers, stream=True)
 
     def generate():
-        for chunk in response.iter_content(chunk_size=4096):
+        for chunk in response.iter_content(chunk_size=2048):
             if chunk:
                 yield chunk
 
