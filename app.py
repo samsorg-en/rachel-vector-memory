@@ -49,9 +49,9 @@ def precache_audio(text):
     except Exception as e:
         logger.error(f"❌ Preload failed for: {text} — {e}")
 
-# ✅ Preload top 3 script lines at startup
+# ✅ Preload top 2 script lines at startup
 try:
-    preload_lines = memory_engine.get_initial_script_lines(3)
+    preload_lines = memory_engine.get_initial_script_lines()
     for line in preload_lines:
         threading.Thread(target=precache_audio, args=(line,)).start()
 except Exception as e:
@@ -72,7 +72,7 @@ def voice():
 
         # ✅ Pre-cache next line in background
         def precache_next_line():
-            next_line = memory_engine.peek_next_line(call_sid)
+            next_line = memory_engine.peek_next_line(call_sid, lookahead=2)
             if next_line:
                 precache_audio(next_line)
                 logger.info(f"🔊 Pre-cached next line for {call_sid}")
@@ -142,7 +142,7 @@ def respond_twilio():
         url_encoded_text = quote_plus(reply)
 
         def precache_next_line():
-            next_line = memory_engine.peek_next_line(call_sid)
+            next_line = memory_engine.peek_next_line(call_sid, lookahead=2)
             if next_line:
                 precache_audio(next_line)
                 logger.info(f"🔊 Pre-cached next line for {call_sid}")
