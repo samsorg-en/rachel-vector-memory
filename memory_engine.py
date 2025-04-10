@@ -4,7 +4,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import TextLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
-import os, glob, urllib.parse
+import os, glob
 
 vectorstore = None
 
@@ -50,26 +50,19 @@ class MemoryEngine:
                 for line in section:
                     if line.strip() and line.strip() not in self.call_audio_cache:
                         try:
-                            audio_key = self.synthesize(line.strip())
-                            if audio_key:
-                                self.call_audio_cache[line.strip()] = audio_key
+                            self.call_audio_cache[line.strip()] = self.synthesize(line.strip())
                         except Exception as e:
                             print(f"[⚠️ Failed to synthesize] {line.strip()} → {e}")
             for key, data in self.known_objections.items():
                 for part in [data.get("response"), data.get("followup")]:
                     if part and part not in self.call_audio_cache:
                         try:
-                            audio_key = self.synthesize(part)
-                            if audio_key:
-                                self.call_audio_cache[part] = audio_key
+                            self.call_audio_cache[part] = self.synthesize(part)
                         except Exception as e:
                             print(f"[⚠️ Failed to synthesize objection] {part} → {e}")
 
     def get_audio_url(self, text):
-        key = self.call_audio_cache.get(text.strip())
-        if key:
-            return f"/audio/{key}"
-        return None
+        return self.call_audio_cache.get(text.strip())
 
     def reset_script(self, call_sid):
         flat_script = []
@@ -99,19 +92,11 @@ class MemoryEngine:
         if memory.get("waiting_for_followup_reply"):
             followup = memory.get("pending_followup")
             if followup:
-                print(f"[🔁 Delivering follow-up] {followup}")
                 memory["waiting_for_followup_reply"] = False
                 memory["pending_followup"] = None
                 if memory.get("resume_index") is not None:
                     memory["current_index"] = memory.pop("resume_index")
-                    print(f"[📍 Resuming script at index] {memory['current_index']}")
-                else:
-                    print("[⚠️ resume_index missing — defaulting to current position]")
-                return {
-                    "response": followup.strip(),
-                    "audio_key": self.call_audio_cache.get(followup.strip()),
-                    "sources": ["followup"]
-                }
+                return {"response": followup.strip(), "sources": ["followup"]}
 
         safe_phrases = [
             "hello", "hi", "yes", "yeah", "yep", "this is", "who is this", "how can i help",
@@ -131,7 +116,6 @@ class MemoryEngine:
             followup_text = objection_data.get("followup", "").strip()
 
             if not response_text:
-                print(f"[⚠️ Empty objection response] for key: {matched_key}")
                 return self._next_script_line(memory)
 
             memory["in_objection_followup"] = True
@@ -142,12 +126,7 @@ class MemoryEngine:
             else:
                 memory["resume_index"] = len(memory["script_segments"])
 
-            print(f"[✅ Objection matched] {matched_key} → {response_text}")
-            return {
-                "response": response_text,
-                "audio_key": self.call_audio_cache.get(response_text),
-                "sources": ["memory"]
-            }
+            return {"response": response_text, "sources": ["memory"]}
 
         vague_yes = [
             "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
@@ -159,18 +138,10 @@ class MemoryEngine:
         return self._next_script_line(memory)
 
     def _next_script_line(self, memory):
-        try:
-            if memory["current_index"] < len(memory["script_segments"]):
-                line = memory["script_segments"][memory["current_index"]]
-                memory["current_index"] += 1
-                if line.strip():
-                    return {
-                        "response": line.strip(),
-                        "audio_key": self.call_audio_cache.get(line.strip()),
-                        "sources": ["script"]
-                    }
-        except Exception as e:
-            print("[⚠️ Script progression error]", str(e))
+        if memory["current_index"] < len(memory["script_segments"]):
+            line = memory["script_segments"][memory["current_index"]]
+            memory["current_index"] += 1
+            return {"response": line.strip(), "sources": ["script"]}
         return {"response": "", "sources": ["script"]}
 
     def _load_known_objections(self, path):
