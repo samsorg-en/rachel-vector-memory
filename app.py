@@ -5,10 +5,14 @@ import sys
 import os
 import time
 import requests
+import boto3
 
 # ✅ Config
 ELEVENLABS_API_KEY = "sk_bc11b5c020232ad11edfade246e472ffa60993e167ef2075"
 ELEVENLABS_VOICE_ID = "MioXIsoKIp7emOKpdXaL"
+
+# ✅ Polly Setup
+polly_client = boto3.client('polly', region_name='us-east-1')
 
 # ✅ Logging Setup
 logging.basicConfig(
@@ -21,9 +25,10 @@ logger = logging.getLogger(__name__)
 # ✅ Flask App Setup
 app = Flask(__name__)
 
-# ✅ ElevenLabs Text-to-Speech (define this FIRST!)
+# ✅ ElevenLabs Text-to-Speech with Polly fallback
 def synthesize_speech(text):
     try:
+        # First try ElevenLabs
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}/stream"
         headers = {
             "xi-api-key": ELEVENLABS_API_KEY,
@@ -52,8 +57,28 @@ def synthesize_speech(text):
                     return url_for("serve_audio", filename=filename, _external=True)
                 time.sleep(0.1)
     except Exception as e:
-        logger.error(f"❌ Error synthesizing speech: {e}")
-    return None
+        logger.error(f"❌ Error synthesizing speech with ElevenLabs: {e}")
+
+    # If ElevenLabs fails, use Polly as fallback
+    logger.info("⏭️ Falling back to Polly TTS")
+    try:
+        response = polly_client.synthesize_speech(
+            Text=text,
+            VoiceId='Joanna',  # You can change this to any Polly voice.
+            OutputFormat='mp3',
+            SampleRate='22050'
+        )
+        filename = f"{abs(hash(text))}_polly.mp3"
+        filepath = f"/tmp/{filename}"
+        with open(filepath, 'wb') as f:
+            f.write(response['AudioStream'].read())
+
+        logger.info(f"✅ Polly Audio saved and ready: {filepath}")
+        return url_for("serve_audio", filename=filename, _external=True)
+    except Exception as e:
+        logger.error(f"❌ Error synthesizing speech with Polly: {e}")
+
+    return None  # If both fail, return None
 
 # ✅ NOW safely import MemoryEngine
 from memory_engine import MemoryEngine
