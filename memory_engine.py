@@ -5,6 +5,7 @@ from langchain_community.document_loaders import TextLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 import os, glob
+import requests
 
 vectorstore = None
 
@@ -45,6 +46,20 @@ class MemoryEngine:
             key: self.embedding_model.embed_query(key)
             for key in self.known_objections
         }
+
+        # ✅ Pre-cache first 3 script lines for speed
+        self.script_precache = []
+        for section in self.script_sections.values():
+            self.script_precache.extend(section)
+        self.script_precache_audio = {}
+        for i, line in enumerate(self.script_precache[:3]):
+            try:
+                url = f"https://rachel-vector-memory.fly.dev/speech?text={requests.utils.quote(line)}"
+                requests.get(url, timeout=1)
+                self.script_precache_audio[i] = url
+                print(f"[🔊 Pre-cached script line {i+1}] {line}")
+            except:
+                print(f"[⚠️ Failed to pre-cache line {i+1}]")
 
     def reset_script(self, call_sid):
         flat_script = []
@@ -128,13 +143,6 @@ class MemoryEngine:
             print("[⚠️ Script progression error]", str(e))
         return {"response": "", "sources": ["script"]}
 
-    def peek_next_line(self, call_sid):
-        memory = self.call_memory.get(call_sid, {})
-        index = memory.get("current_index", 0)
-        if index < len(memory.get("script_segments", [])):
-            return memory["script_segments"][index]
-        return ""
-
     def _load_known_objections(self, path):
         objections = {}
         with open(path, "r") as file:
@@ -191,4 +199,3 @@ class MemoryEngine:
         norm1 = sum(a * a for a in vec1) ** 0.5
         norm2 = sum(b * b for b in vec2) ** 0.5
         return dot / (norm1 * norm2)
-
