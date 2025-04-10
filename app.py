@@ -63,14 +63,14 @@ def respond_twilio():
         raw_input = request.form.get("SpeechResult", "")
         user_input = raw_input.strip().lower() if raw_input else ""
 
-        logger.info(f"👂 Heard from caller: '{user_input}'")
+        logger.info(f"👃 Heard from caller: '{user_input}'")
         response = VoiceResponse()
 
         # ✅ Silence Detection
         if not user_input or user_input in ["", ".", "...", "uh", "um", "hmm"]:
             attempts = silent_attempts.get(call_sid, 0) + 1
             silent_attempts[call_sid] = attempts
-            logger.info(f"🤫 Silence attempt #{attempts}")
+            logger.info(f"🨫 Silence attempt #{attempts}")
 
             if attempts == 1:
                 gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
