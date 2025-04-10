@@ -28,7 +28,7 @@ audio_memory_cache = {}  # Stores {text: BytesIO(audio)} for fast response
 def synthesize_speech(text):
     if text in audio_memory_cache:
         logger.info(f"✅ In-memory audio found: {text}")
-        return text  # Key used to retrieve BytesIO later
+        return text
 
     try:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}/stream"
@@ -82,8 +82,6 @@ def serve_audio(key):
 
 # ✅ Initialize Engine
 memory_engine = MemoryEngine(synthesize_fn=synthesize_speech)
-
-# ✅ Silence Tracker
 silent_attempts = {}
 
 # ✅ Start Call
@@ -129,7 +127,6 @@ def respond_twilio():
             raw_input = request.form.get("SpeechResult", "")
 
         user_input = raw_input.strip().lower() if raw_input else ""
-
         logger.info(f"🗣️ Heard from caller: '{user_input}'")
         response = VoiceResponse()
 
@@ -164,7 +161,6 @@ def respond_twilio():
             return str(response)
 
         silent_attempts[call_sid] = 0
-
         response_data = memory_engine.generate_response(call_sid, user_input)
         reply_text = response_data.get("response", "I'm not sure how to respond to that.")
         logger.info(f"🗣️ Rachel: {reply_text}")
@@ -188,9 +184,3 @@ def respond_twilio():
         fallback = VoiceResponse()
         fallback.say("Something went wrong. Please try again later.")
         return str(fallback)
-
-# ✅ Run the app
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    logger.info(f"🚀 Starting Rachel Memory Engine on port {port}")
-    app.run(host="0.0.0.0", port=port)
