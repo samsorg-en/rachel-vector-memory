@@ -27,6 +27,7 @@ silent_attempts = {}
 # ✅ In-memory audio cache
 audio_cache = {}
 
+
 def precache_audio(text):
     if text in audio_cache:
         return
@@ -39,15 +40,16 @@ def precache_audio(text):
         payload = {
             "text": text,
             "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.75
+                "stability": 0.3,
+                "similarity_boost": 0.9
             }
         }
         response = requests.post(url, json=payload, headers=headers, stream=True)
         audio_cache[text] = b"".join(response.iter_content(chunk_size=2048))
-        logger.info(f"🔊 Preloaded audio for: {text}")
+        logger.info(f"🎧 Preloaded audio for: {text}")
     except Exception as e:
         logger.error(f"❌ Preload failed for: {text} — {e}")
+
 
 # ✅ Preload top 2 script lines at startup
 try:
@@ -57,6 +59,7 @@ try:
             threading.Thread(target=precache_audio, args=(line,)).start()
 except Exception as e:
     logger.error(f"❌ Failed to preload initial lines: {e}")
+
 
 # ✅ Start Call
 @app.route("/voice", methods=["POST"])
@@ -76,20 +79,20 @@ def voice():
             next_line = memory_engine.peek_next_line(call_sid, offset=2)
             if next_line and next_line not in audio_cache:
                 precache_audio(next_line)
-                logger.info(f"🔊 Pre-cached next line for {call_sid}")
+                logger.info(f"🎧 Pre-cached next line for {call_sid}")
 
         threading.Thread(target=precache_next_line).start()
 
         gather = Gather(
             input="speech",
-            timeout=3,
+            timeout=2,
             speechTimeout="auto",
             action="/respond_twilio",
             method="POST"
         )
-        gather.pause(length=1)
+        gather.pause(length=0.5)
         gather.play(f"https://rachel-vector-memory.fly.dev/speech?text={url_encoded_text}")
-        gather.pause(length=1)
+        gather.pause(length=0.5)
         response.append(gather)
         return str(response)
 
@@ -98,6 +101,7 @@ def voice():
         fallback = VoiceResponse()
         fallback.say("Sorry, something went wrong. Please try again later.", voice="Polly.Joanna")
         return str(fallback)
+
 
 # ✅ Respond to User Input
 @app.route("/respond_twilio", methods=["POST"])
@@ -113,16 +117,16 @@ def respond_twilio():
         if not user_input or user_input in ["", ".", "...", "uh", "um", "hmm"]:
             attempts = silent_attempts.get(call_sid, 0) + 1
             silent_attempts[call_sid] = attempts
-            logger.info(f"🨫 Silence attempt #{attempts}")
+            logger.info(f"🫫 Silence attempt #{attempts}")
 
             if attempts == 1:
-                gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
+                gather = Gather(input="speech", timeout=2, speechTimeout="auto", action="/respond_twilio", method="POST")
                 gather.play("https://rachel-vector-memory.fly.dev/speech?text=Can+you+still+hear+me%3F")
                 response.append(gather)
                 return str(response)
 
             elif attempts == 2:
-                gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
+                gather = Gather(input="speech", timeout=2, speechTimeout="auto", action="/respond_twilio", method="POST")
                 gather.play("https://rachel-vector-memory.fly.dev/speech?text=Just+checking+back+in+%E2%80%94+are+you+still+there%3F")
                 response.append(gather)
                 return str(response)
@@ -146,14 +150,14 @@ def respond_twilio():
             next_line = memory_engine.peek_next_line(call_sid, offset=2)
             if next_line and next_line not in audio_cache:
                 precache_audio(next_line)
-                logger.info(f"🔊 Pre-cached next line for {call_sid}")
+                logger.info(f"🎧 Pre-cached next line for {call_sid}")
 
         threading.Thread(target=precache_next_line).start()
 
-        gather = Gather(input="speech", timeout=3, speechTimeout="auto", action="/respond_twilio", method="POST")
-        gather.pause(length=1)
+        gather = Gather(input="speech", timeout=2, speechTimeout="auto", action="/respond_twilio", method="POST")
+        gather.pause(length=0.5)
         gather.play(f"https://rachel-vector-memory.fly.dev/speech?text={url_encoded_text}")
-        gather.pause(length=1)
+        gather.pause(length=0.5)
         response.append(gather)
 
         return str(response)
@@ -163,6 +167,7 @@ def respond_twilio():
         fallback = VoiceResponse()
         fallback.say("Something went wrong. Please try again later.", voice="Polly.Joanna")
         return str(fallback)
+
 
 # ✅ ElevenLabs Speech Endpoint
 @app.route("/speech")
@@ -190,8 +195,8 @@ def speech():
     payload = {
         "text": text,
         "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.75
+            "stability": 0.3,
+            "similarity_boost": 0.9
         }
     }
 
@@ -211,6 +216,7 @@ def speech():
             "Connection": "keep-alive"
         }
     )
+
 
 # ✅ Run the app
 if __name__ == "__main__":
