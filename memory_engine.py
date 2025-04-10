@@ -4,7 +4,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import TextLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
-import os, glob
+import os, glob, urllib.parse
 
 vectorstore = None
 
@@ -12,10 +12,8 @@ class MemoryEngine:
     def __init__(self, synthesize_fn=None):
         global vectorstore
 
-        # ✅ Inject synthesize function from app.py
         self.synthesize = synthesize_fn
 
-        # ✅ Load script
         script_path = "calls/script/*.txt"
         self.script_sections = {}
         for path in sorted(glob.glob(script_path)):
@@ -24,10 +22,8 @@ class MemoryEngine:
                 content = file.read()
                 self.script_sections[key] = [part.strip() for part in content.split("[gather]") if part.strip()]
 
-        # ✅ Objection memory
         self.known_objections = self._load_known_objections("calls/script/objections.txt")
 
-        # ✅ Setup vector QA fallback
         loader = TextLoader("calls/script/objections.txt")
         docs = loader.load()
         splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
@@ -49,25 +45,31 @@ class MemoryEngine:
             for key in self.known_objections
         }
 
-        # ✅ Pre-synthesize & cache audio for all lines
         if self.synthesize:
             for section in self.script_sections.values():
                 for line in section:
                     if line.strip() and line.strip() not in self.call_audio_cache:
                         try:
-                            self.call_audio_cache[line.strip()] = self.synthesize(line.strip())
+                            audio_key = self.synthesize(line.strip())
+                            if audio_key:
+                                self.call_audio_cache[line.strip()] = audio_key
                         except Exception as e:
                             print(f"[⚠️ Failed to synthesize] {line.strip()} → {e}")
             for key, data in self.known_objections.items():
                 for part in [data.get("response"), data.get("followup")]:
                     if part and part not in self.call_audio_cache:
                         try:
-                            self.call_audio_cache[part] = self.synthesize(part)
+                            audio_key = self.synthesize(part)
+                            if audio_key:
+                                self.call_audio_cache[part] = audio_key
                         except Exception as e:
                             print(f"[⚠️ Failed to synthesize objection] {part} → {e}")
 
     def get_audio_url(self, text):
-        return self.call_audio_cache.get(text.strip())
+        key = self.call_audio_cache.get(text.strip())
+        if key:
+            return f"/audio/{key}"
+        return None
 
     def reset_script(self, call_sid):
         flat_script = []
@@ -105,7 +107,11 @@ class MemoryEngine:
                     print(f"[📍 Resuming script at index] {memory['current_index']}")
                 else:
                     print("[⚠️ resume_index missing — defaulting to current position]")
-                return {"response": followup.strip(), "sources": ["followup"]}
+                return {
+                    "response": followup.strip(),
+                    "audio_key": self.call_audio_cache.get(followup.strip()),
+                    "sources": ["followup"]
+                }
 
         safe_phrases = [
             "hello", "hi", "yes", "yeah", "yep", "this is", "who is this", "how can i help",
@@ -137,7 +143,11 @@ class MemoryEngine:
                 memory["resume_index"] = len(memory["script_segments"])
 
             print(f"[✅ Objection matched] {matched_key} → {response_text}")
-            return {"response": response_text, "sources": ["memory"]}
+            return {
+                "response": response_text,
+                "audio_key": self.call_audio_cache.get(response_text),
+                "sources": ["memory"]
+            }
 
         vague_yes = [
             "yeah", "yes", "sure", "i guess", "i think so", "that’s right", "correct",
@@ -154,7 +164,11 @@ class MemoryEngine:
                 line = memory["script_segments"][memory["current_index"]]
                 memory["current_index"] += 1
                 if line.strip():
-                    return {"response": line.strip(), "sources": ["script"]}
+                    return {
+                        "response": line.strip(),
+                        "audio_key": self.call_audio_cache.get(line.strip()),
+                        "sources": ["script"]
+                    }
         except Exception as e:
             print("[⚠️ Script progression error]", str(e))
         return {"response": "", "sources": ["script"]}
