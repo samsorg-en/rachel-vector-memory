@@ -49,14 +49,14 @@ class MemoryEngine:
 
         # ✅ Pre-cache first 2 script lines for speed
         self.script_precache = []
+        self.script_precache_audio = set()
         for section in self.script_sections.values():
             self.script_precache.extend(section)
-        self.script_precache_audio = {}
         for i, line in enumerate(self.script_precache[:2]):
             try:
                 url = f"https://rachel-vector-memory.fly.dev/speech?text={requests.utils.quote(line)}"
                 requests.get(url, timeout=1)
-                self.script_precache_audio[i] = url
+                self.script_precache_audio.add(line)
                 print(f"[🔊 Pre-cached script line {i+1}] {line}")
             except:
                 print(f"[⚠️ Failed to pre-cache line {i+1}]")
@@ -149,7 +149,10 @@ class MemoryEngine:
             return None
         index = memory["current_index"] + offset - 1
         if index < len(memory["script_segments"]):
-            return memory["script_segments"][index]
+            line = memory["script_segments"][index]
+            if line not in self.script_precache_audio:
+                self.script_precache_audio.add(line)
+                return line
         return None
 
     def get_initial_script_lines(self):
