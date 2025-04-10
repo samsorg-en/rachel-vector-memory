@@ -128,6 +128,13 @@ class MemoryEngine:
             print("[⚠️ Script progression error]", str(e))
         return {"response": "", "sources": ["script"]}
 
+    def peek_next_line(self, call_sid):
+        memory = self.call_memory.get(call_sid, {})
+        index = memory.get("current_index", 0)
+        if index < len(memory.get("script_segments", [])):
+            return memory["script_segments"][index]
+        return ""
+
     def _load_known_objections(self, path):
         objections = {}
         with open(path, "r") as file:
@@ -184,3 +191,4 @@ class MemoryEngine:
         norm1 = sum(a * a for a in vec1) ** 0.5
         norm2 = sum(b * b for b in vec2) ** 0.5
         return dot / (norm1 * norm2)
+
