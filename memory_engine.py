@@ -1,10 +1,10 @@
-import os, glob
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatOpenAI
 from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import TextLoader
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
+import os, glob
 
 vectorstore = None
 
@@ -24,7 +24,7 @@ class MemoryEngine:
         # ✅ Objection memory
         self.known_objections = self._load_known_objections("calls/script/objections.txt")
 
-        # ✅ Setup vector QA fallback
+        # ✅ Setup vector QA fallback (disabled by default for now)
         loader = TextLoader("calls/script/objections.txt")
         docs = loader.load()
         splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=0)
@@ -39,7 +39,6 @@ class MemoryEngine:
 
         self.call_memory = {}
         self.embedding_model = embedding
-        self.call_audio_cache = {}
 
         # ✅ Precompute objection embeddings
         self.precomputed_objection_embeddings = {
@@ -47,27 +46,11 @@ class MemoryEngine:
             for key in self.known_objections
         }
 
-        # ✅ Pre-synthesize & cache audio for all lines (with delayed import)
-        for section in self.script_sections.values():
-            for line in section:
-                if line.strip():
-                    from app import synthesize_speech  # 🚫 fixed circular import
-                    self.call_audio_cache[line.strip()] = synthesize_speech(line.strip())
-
-        for key, data in self.known_objections.items():
-            from app import synthesize_speech  # 🚫 import again here safely
-            if data.get("response"):
-                self.call_audio_cache[data["response"]] = synthesize_speech(data["response"])
-            if data.get("followup"):
-                self.call_audio_cache[data["followup"]] = synthesize_speech(data["followup"])
-
-    def get_audio_url(self, text):
-        return self.call_audio_cache.get(text.strip())
-
     def reset_script(self, call_sid):
         flat_script = []
         for section in self.script_sections.values():
             flat_script.extend(section)
+
         self.call_memory[call_sid] = {
             "script_segments": flat_script,
             "current_index": 0,
@@ -100,14 +83,6 @@ class MemoryEngine:
                 else:
                     print("[⚠️ resume_index missing — defaulting to current position]")
                 return {"response": followup.strip(), "sources": ["followup"]}
-
-        safe_phrases = [
-            "hello", "hi", "yes", "yeah", "yep", "this is", "who is this", "how can i help",
-            "yes this is", "speaking", "it is", "you got em"
-        ]
-        for phrase in safe_phrases:
-            if phrase in user_input.lower():
-                return self._next_script_line(memory)
 
         matched_key = self._exact_match_objection(user_input)
         if not matched_key:
